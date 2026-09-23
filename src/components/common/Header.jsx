@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ShieldCheck, Layers, HardHat, Award, BarChart3, HelpCircle, Wifi, WifiOff } from 'lucide-react';
+import { ShieldCheck, Layers, HardHat, Award, BarChart3, HelpCircle, Bot, Box } from 'lucide-react';
 import LanguageSelector from './LanguageSelector';
 import { TRANSLATIONS } from '../../locales/translations';
 
@@ -20,6 +20,8 @@ export default function Header({ currentLang, onSelectLang, activeTab, setActive
 
   const navItems = [
     { id: 'ar', label: t.navArModules, icon: Layers },
+    { id: 'assistant', label: "SurakshaMitra AI", icon: Bot },
+    { id: 'explorer', label: "3D Gear Sandbox", icon: Box },
     { id: 'assessment', label: t.navAssessment, icon: HardHat },
     { id: 'certificate', label: t.navCertificates, icon: Award },
     { id: 'admin', label: t.navAdmin, icon: BarChart3 },

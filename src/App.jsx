@@ -6,6 +6,8 @@ import CertificateView from './components/certificate/CertificateView';
 import AdminDashboard from './components/admin/AdminDashboard';
 import WorkerGuide from './components/guide/WorkerGuide';
 import QRVerifierModal from './components/certificate/QRVerifierModal';
+import SurakshaAssistant from './components/ai/SurakshaAssistant';
+import EquipmentExplorer from './components/explorer/EquipmentExplorer';
 import { TRANSLATIONS } from './locales/translations';
 import { saveWorkerEvaluation } from './utils/offlineStorage';
 
@@ -62,6 +64,14 @@ export default function App() {
             currentLang={currentLang}
             onModuleComplete={handleModuleComplete}
           />
+        )}
+
+        {activeTab === 'assistant' && (
+          <SurakshaAssistant currentLang={currentLang} />
+        )}
+
+        {activeTab === 'explorer' && (
+          <EquipmentExplorer currentLang={currentLang} />
         )}
 
         {activeTab === 'assessment' && (
