@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { ShieldCheck, Layers, HardHat, Award, BarChart3, HelpCircle, Bot, Box } from 'lucide-react';
+import { ShieldCheck, Layers, HardHat, Award, BarChart3, HelpCircle, Bot, Box, ShieldAlert, Target } from 'lucide-react';
 import LanguageSelector from './LanguageSelector';
 import { TRANSLATIONS } from '../../locales/translations';
 
-export default function Header({ currentLang, onSelectLang, activeTab, setActiveTab }) {
+export default function Header({ currentLang, onSelectLang, activeTab, setActiveTab, onOpenSos }) {
   const t = TRANSLATIONS[currentLang] || TRANSLATIONS.en;
   const [isOnline, setIsOnline] = useState(navigator.onLine);
 
@@ -20,6 +20,7 @@ export default function Header({ currentLang, onSelectLang, activeTab, setActive
 
   const navItems = [
     { id: 'ar', label: t.navArModules, icon: Layers },
+    { id: 'game', label: "Hazard Spotter", icon: Target },
     { id: 'assistant', label: "SurakshaMitra AI", icon: Bot },
     { id: 'explorer', label: "3D Gear Sandbox", icon: Box },
     { id: 'assessment', label: t.navAssessment, icon: HardHat },
@@ -31,7 +32,7 @@ export default function Header({ currentLang, onSelectLang, activeTab, setActive
   return (
     <header className="sticky top-0 z-50 bg-slate-950/95 backdrop-blur-md border-b border-amber-500/20 shadow-lg">
       <div className="max-w-7xl mx-auto px-3 sm:px-6">
-        {/* Main Logo & Language Bar */}
+        {/* Main Logo & SOS Bar */}
         <div className="flex items-center justify-between h-14 border-b border-slate-800/60">
           <div className="flex items-center space-x-2 cursor-pointer" onClick={() => setActiveTab('ar')}>
             <div className="p-1.5 bg-gradient-to-br from-amber-400 to-amber-600 rounded-xl text-slate-950 shadow-md">
@@ -48,11 +49,21 @@ export default function Header({ currentLang, onSelectLang, activeTab, setActive
           </div>
 
           <div className="flex items-center space-x-2">
+            {/* SOS Panic Button */}
+            <button
+              onClick={onOpenSos}
+              className="px-2.5 py-1 bg-red-600 hover:bg-red-500 text-white font-black text-xs rounded-xl shadow-lg flex items-center space-x-1 animate-pulse"
+              title="Emergency SOS Panic Dispatched"
+            >
+              <ShieldAlert className="w-4 h-4" />
+              <span>SOS BEACON</span>
+            </button>
+
             <LanguageSelector currentLang={currentLang} onSelectLang={onSelectLang} />
           </div>
         </div>
 
-        {/* Compact Navigation Bar */}
+        {/* Navigation Tabs */}
         <nav className="flex space-x-1 overflow-x-auto py-2 no-scrollbar">
           {navItems.map((item) => {
             const Icon = item.icon;

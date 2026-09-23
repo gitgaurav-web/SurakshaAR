@@ -8,6 +8,8 @@ import WorkerGuide from './components/guide/WorkerGuide';
 import QRVerifierModal from './components/certificate/QRVerifierModal';
 import SurakshaAssistant from './components/ai/SurakshaAssistant';
 import EquipmentExplorer from './components/explorer/EquipmentExplorer';
+import HazardSpotterGame from './components/game/HazardSpotterGame';
+import EmergencySosModal from './components/emergency/EmergencySosModal';
 import { TRANSLATIONS } from './locales/translations';
 import { saveWorkerEvaluation } from './utils/offlineStorage';
 
@@ -15,6 +17,7 @@ export default function App() {
   const [currentLang, setCurrentLang] = useState('hi');
   const [activeTab, setActiveTab] = useState('ar');
   const [isScannerOpen, setIsScannerOpen] = useState(false);
+  const [isSosOpen, setIsSosOpen] = useState(false);
   
   const [activeWorker, setActiveWorker] = useState({
     id: "JHK-MN-2026-081",
@@ -56,6 +59,7 @@ export default function App() {
         onSelectLang={setCurrentLang}
         activeTab={activeTab}
         setActiveTab={setActiveTab}
+        onOpenSos={() => setIsSosOpen(true)}
       />
 
       <main className="flex-1 max-w-7xl w-full mx-auto p-2 sm:p-4 lg:p-6">
@@ -64,6 +68,10 @@ export default function App() {
             currentLang={currentLang}
             onModuleComplete={handleModuleComplete}
           />
+        )}
+
+        {activeTab === 'game' && (
+          <HazardSpotterGame currentLang={currentLang} />
         )}
 
         {activeTab === 'assistant' && (
@@ -114,6 +122,11 @@ export default function App() {
       <QRVerifierModal
         isOpen={isScannerOpen}
         onClose={() => setIsScannerOpen(false)}
+      />
+
+      <EmergencySosModal
+        isOpen={isSosOpen}
+        onClose={() => setIsSosOpen(false)}
       />
     </div>
   );
