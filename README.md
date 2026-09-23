@@ -1,116 +1,194 @@
-# SurakshaAR - AR-Based Vocational Training & Safety Simulator for Jharkhand
+# SurakshaAR (ᱠᱷᱟᱫᱟᱱ ᱨᱩᱠᱷᱤヤ / खदान सुरक्षा)
+### AR-Based Vocational Training & Safety Certification Platform for Industrial Safety in Jharkhand's Mining & Manufacturing Sector
 
-**Problem Statement Title**: AR-Based Vocational Training Simulator for Industrial Safety in Jharkhand's Mining & Manufacturing Sector  
-**Target Sector**: Jharkhand Coal Mines (Dhanbad), Steel Plants (Bokaro / Jamshedpur), Mica Processing (Giridih)  
-**Compliance Standards**: DGMS Dhanbad Alignment, Factories Act 1948, Mines Act 1952  
-
----
-
-## 📌 Executive Overview
-
-Jharkhand is India's leading mineral-producing state. Traditional classroom safety training achieves low retention rates, live drills are operationally disruptive, and VR headset simulators are financially inaccessible for small-scale mines and contract workers.
-
-**SurakshaAR** (**ᱠᱷᱟᱫᱟᱱ ᱨᱩᱠᱷᱤᱭᱟᱹ / खदान सुरक्षा**) delivers an interactive, mobile AR-based vocational training and safety certification platform running on mid-range Android smartphones (Android 10+, camera-based AR, no external headset required).
+![License](https://img.shields.io/badge/License-MIT-amber.svg)
+![Build](https://img.shields.io/badge/Build-Passing-emerald.svg)
+![Platform](https://img.shields.io/badge/Platform-Android%2010%2B%20%7C%20WebAR-blue.svg)
+![DGMS Compliant](https://img.shields.io/badge/DGMS%20Dhanbad-Compliant-red.svg)
+![Languages](https://img.shields.io/badge/Languages-Hindi%20%7C%20Santali%20(Ol%20Chiki)%20%7C%20English-gold.svg)
 
 ---
 
-## 🚀 Key Platform Features
+## 📌 Problem Statement Alignment
 
-### 1. Interactive Mobile AR Safety Modules (`src/components/ar/`)
-- **Domain 1: Fire & Explosion Emergency Response**:
-  - Live camera feed overlay with 3D Fire Flame & Smoke particle systems.
-  - Glowing AR directional floor vectors leading to safe escape tunnels.
-  - Interactive **P.A.S.S.** extinguisher drill (Pull pin -> Aim base -> Squeeze lever -> Sweep side-to-side).
-  - Evacuation countdown drill (45-second timer).
-- **Domain 2: Gas Leak & Confined Space Protocol**:
-  - Volumetric Methane ($CH_4$) & Carbon Monoxide ($CO$) gas cloud simulation.
-  - Digital Multi-Gas Detector calibration ($CH_4 > 1.25\%$ threshold automatic power cutoff).
-  - SCBA (Self-Contained Breathing Apparatus) oxygen mask & safety harness selector.
-  - Buddy safety line (3-tug emergency retrieval signal).
-- **Domain 3: Machinery & Conveyor Safety**:
-  - Lockout/Tagout (LOTO) key isolation on mining conveyor belt drive motors.
-  - Red hazard boundary stay-clear warnings.
-
-### 2. Multi-Lingual Accessibility & Audio Engine (`src/locales/` & `src/utils/`)
-- Full support for **English**, **Hindi (हिंदी)**, and **Santali (ᱥᱟᱱᱛᱟᱲᱤ - Ol Chiki script)**.
-- Integrated Web Speech API audio narration engine for workers with low literacy levels.
-- High-Contrast Outdoor Sunlight Mode toggle for outdoor field use.
-
-### 3. DGMS Assessment & Verifiable QR Certificates (`src/components/certificate/`)
-- Interactive picture-based safety evaluation quiz (Passing standard $\ge 75\%$).
-- Official **DGMS Compliant Digital Safety Certificates**.
-- Embedded QR code containing unique SHA hash payload (`0x8F9A7B3C2D1E4F5A`) and verification URL.
-- Direct client-side PDF document download (`jsPDF`).
-
-### 4. DGMS Web Admin Compliance Dashboard (`src/components/admin/`)
-- Real-time compliance monitoring across Dhanbad Coalfields, Bokaro Steel, Giridih Mica, and Jamshedpur Steel clusters.
-- Worker roster management table with search and sector filtering.
-- Camera/Input QR inspector verification modal.
-- One-click export of audit reports in CSV format.
+- **Problem Title**: AR-Based Vocational Training Simulator for Industrial Safety in Jharkhand's Mining & Manufacturing Sector
+- **Target Audience**: Miners, steel plant workers, and mica processing recruits across Jharkhand (Dhanbad Coalfields, Bokaro Steel Plant, Giridih Mica Hub, Jamshedpur Steel Cluster).
+- **Regulatory Standards**: Aligned with Directorate General of Mines Safety (DGMS) Dhanbad Directives, Mines Act 1952 (Section 22A), and Factories Act 1948.
+- **Hardware Requirement**: Operates on mid-range Android smartphones (Android 10+, camera-based WebAR, **no external VR headset required**).
 
 ---
 
-## 🛠️ Technology Stack
+## 🏗️ System Architecture
 
-- **Frontend Framework**: React 19 + Vite 8
-- **3D Graphics & AR Engine**: Three.js (WebGL Particle Systems & 3D Geometry)
-- **Styling**: Tailwind CSS + Glassmorphism & Custom Industrial HUD
-- **Native Android Wrapper**: Capacitor 8 (`@capacitor/core`, `@capacitor/android`, `@capacitor/filesystem`, `@capacitor/preferences`, `@capacitor/camera`, `@capacitor/status-bar`, `@capacitor/splash-screen`)
-- **Audio Synthesis**: Web Speech API (`SpeechSynthesisUtterance`) + Web Audio API Synthesis
-- **Document & QR Generation**: `jspdf` + `qrcode`
+```text
++-----------------------------------------------------------------------------------+
+|                            SurakshaAR Architecture                                |
++-----------------------------------------------------------------------------------+
+|                                                                                   |
+|  +-----------------------------------------------------------------------------+  |
+|  |             1. Mobile AR Training & Simulation Engine (PWA / APK)            |  |
+|  |  - HTML5 Camera Feed + WebGL/Three.js AR Overlay                             |  |
+|  |  - Camera Filter Spectrum (Standard AR, Thermal Heat, Night-Vision, 3D Shaft)|  |
+|  |  - Gyroscope 360° Motion Tracking (DeviceOrientationEvent)                  |  |
+|  |  - Memory-Safe Three.js Object Disposal Engine (RAM Leak Cleanup)           |  |
+|  |  - Module 1: Fire & Explosion Safety (P.A.S.S. Extinguisher & Evacuation)    |  |
+|  |  - Module 2: Gas Leak & Confined Space (Methane/CO Plumes & SCBA PPE Mask)    |  |
+|  |  - Module 3: Machinery LOTO Protocol (Conveyor Belt Isolation & Stay-Clear)  |  |
+|  +-----------------------------------------------------------------------------+  |
+|                                         |                                         |
+|                                         v                                         |
+|  +-----------------------------------------------------------------------------+  |
+|  |        2. Accessibility, Multilingual Voice & AI Assistant Layer            |  |
+|  |  - English, Hindi (हिंदी), Santali (ᱥᱟᱱᱛᱟᱲᱤ - Ol Chiki + Phonetic Speech)      |  |
+|  |  - SurakshaMitra AI Voice Assistant (Speech-to-Text & Spoken Answers)        |  |
+|  |  - 3D Interactive Equipment Explorer Sandbox (360° Rotation Controls)        |  |
+|  |  - 48px × 48px Heavy-Duty Field Worker Touch Target Buttons                    |  |
+|  |  - High-Contrast Outdoor Sunlight Mode Toggle (Yellow-on-Black UI)            |  |
+|  +-----------------------------------------------------------------------------+  |
+|                                         |                                         |
+|                                         v                                         |
+|  +-----------------------------------------------------------------------------+  |
+|  |            3. DGMS Assessment, QR Verification & Offline Sync               |  |
+|  |  - Practical Scoring & Picture-Based Quiz Evaluation (Passing Standard >= 75%) |  |
+|  |  - Verifiable Digital Safety Certificate with SHA Cryptographic Hash          |  |
+|  |  - Direct Client-Side PDF File Exporter (jsPDF)                               |  |
+|  |  - Durable Offline Storage (Capacitor Preferences + IndexedDB)                |  |
+|  |  - Web Admin Compliance Dashboard (DGMS Inspector Scanner & CSV Audit Export) |  |
+|  +-----------------------------------------------------------------------------+  |
++-----------------------------------------------------------------------------------+
+```
 
 ---
 
-## ⚙️ Installation & Running Instructions
+## 🥽 Comprehensive Module Breakdown
+
+### Module 1: Fire & Explosion Response
+- **Real-Time AR Overlay**: 3D Fire Flame & Smoke particle systems rendered directly on camera feed.
+- **Directional Exit Vectors**: Glowing AR green arrows pointing along the ground to safe underground refuge chambers.
+- **Canister Selector**: Choose between DCP (Dry Chemical Powder) for methane/electrical fires or CO2 canisters.
+- **P.A.S.S. Technique Drill**:
+  1. **P**ull Safety Pin
+  2. **A**im at base of fire
+  3. **S**queeze lever
+  4. **S**weep side-to-side (with live progress percentage bar)
+- **Evacuation Countdown**: 45-second timer with audible warning alarms.
+
+### Module 2: Gas Leak & Confined Space Protocol
+- **Toxic Gas Cloud Visualizer**: Volumetric Methane ($CH_4$) & Carbon Monoxide ($CO$) gas clouds overlaid in room/shaft ceilings.
+- **Detector Calibration**: Methane concentration readout ($CH_4 > 1.25\%$ VOL triggers mandatory power cutoff).
+- **SCBA PPE Selection**: Self-Contained Breathing Apparatus (SCBA oxygen cylinder) and safety harness selector.
+- **Buddy System Drill**: Attach steel tug rope to partner worker with 3-tug emergency hoist signal.
+
+### Module 3: Heavy Machinery & Conveyor LOTO Safety
+- **Danger Perimeter**: Red glowing AR stay-clear ring around moving conveyor belt drive rollers.
+- **Lockout / Tagout (LOTO)**: Padlock & danger tag application to main circuit breaker before servicing.
+
+### SurakshaMitra AI Voice Assistant (`src/components/ai/SurakshaAssistant.jsx`)
+- Voice-activated safety assistant allowing low-literacy recruits to speak safety queries in Hindi, Santali, or English.
+- Instant spoken audio responses using Web Speech API synthesis (`onvoiceschanged` async caching).
+
+### 3D Equipment Explorer Sandbox (`src/components/explorer/EquipmentExplorer.jsx`)
+- Interactive 3D inspection sandbox allowing 360-degree rotation and zoom of Extinguisher cutaway, SCBA oxygen cylinder, Multi-Gas Inspector, and LOTO Lock.
+
+### DGMS Web Admin Compliance Dashboard (`src/components/admin/AdminDashboard.jsx`)
+- Real-time compliance monitoring for Dhanbad Coalfields, Bokaro Steel Plant, Giridih Mica Hub, and Jamshedpur Steel Cluster.
+- Worker roster table with search, sector filtering, and cert view links.
+- Built-in camera QR code inspector authenticator modal.
+- One-click CSV audit report export.
+
+---
+
+## 🤖 Native Android & Capacitor Architecture
+
+- **`MainActivity.java` Permission Override**:
+  ```java
+  public class MainActivity extends BridgeActivity {
+      @Override
+      public void onCreate(Bundle savedInstanceState) {
+          super.onCreate(savedInstanceState);
+          if (this.bridge != null && this.bridge.getWebView() != null) {
+              this.bridge.getWebView().setWebChromeClient(new WebChromeClient() {
+                  @Override
+                  public void onPermissionRequest(final PermissionRequest request) {
+                      runOnUiThread(() -> request.grant(request.getResources()));
+                  }
+              });
+          }
+      }
+  }
+  ```
+- **Native Permissions (`AndroidManifest.xml`)**:
+  - `android.permission.CAMERA`
+  - `android.permission.RECORD_AUDIO`
+  - `android.permission.WAKE_LOCK`
+  - `android.permission.WRITE_EXTERNAL_STORAGE`
+  - `android.permission.READ_EXTERNAL_STORAGE`
+  - `android.hardware.sensor.gyroscope` (optional feature)
+- **Release Optimization (`android/app/build.gradle`)**:
+  - `minifyEnabled true`
+  - `shrinkResources true`
+  - R8 / ProGuard code obfuscation and APK size reduction.
+
+---
+
+## ⚙️ How to Build & Run
 
 ### 1. Web Local Development Server
 ```bash
+# Clone the repository
+git clone https://github.com/gitgaurav-web/SurakshaAR.git
+cd SurakshaAR
+
 # Install dependencies
 npm install
 
-# Launch Vite local dev server
+# Start Vite dev server
 npm run dev
 ```
 Open `http://localhost:5173` in your browser.
 
-### 2. Building Web Production Assets
+### 2. Build Web Production Bundle
 ```bash
 npm run build
 ```
 
-### 3. Syncing & Building Standalone Android APK
+### 3. Sync & Build Android APK
 ```bash
-# Sync web dist to Capacitor Android project
+# Copy web assets to native container
 npx cap sync android
 
-# Build Debug APK using Gradle (Windows PowerShell)
+# Compile Debug Android APK via Gradle (Windows PowerShell)
 $env:ANDROID_HOME="C:\Users\gaura\AppData\Local\Android\Sdk"; cd android; ./gradlew assembleDebug
 ```
-The compiled Android APK is located at:  
+The compiled Android APK is generated at:  
 `android/app/build/outputs/apk/debug/app-debug.apk`
 
 ---
 
-## 📁 Repository Directory Structure
+## 📁 Repository Directory Map
 
 ```text
-2-project-sih/
+SurakshaAR/
 ├── src/
 │   ├── components/
 │   │   ├── admin/
-│   │   │   └── AdminDashboard.jsx       # DGMS Compliance Dashboard
+│   │   │   └── AdminDashboard.jsx       # DGMS Compliance Dashboard & Inspector Portal
+│   │   ├── ai/
+│   │   │   └── SurakshaAssistant.jsx    # SurakshaMitra AI Voice Assistant
 │   │   ├── ar/
-│   │   │   └── ARSimulatorContainer.jsx # WebGL / WebAR 3D Camera Overlay Engine
+│   │   │   └── ARSimulatorContainer.jsx # 3D WebGL / WebAR Camera Overlay Engine
 │   │   ├── assessment/
-│   │   │   └── AssessmentEngine.jsx     # Multi-Lingual Practical Quiz
+│   │   │   └── AssessmentEngine.jsx     # Multi-Lingual Practical Safety Quiz
 │   │   ├── certificate/
-│   │   │   ├── CertificateView.jsx      # Digital Certificate & PDF Export
+│   │   │   ├── CertificateView.jsx      # Digital Certificate & jsPDF Direct Downloader
 │   │   │   └── QRVerifierModal.jsx      # Inspector QR Authenticator
 │   │   ├── common/
 │   │   │   ├── Header.jsx               # Navigation Bar & Network Indicator
 │   │   │   └── LanguageSelector.jsx     # English / Hindi / Santali Ol Chiki Switcher
+│   │   ├── explorer/
+│   │   │   └── EquipmentExplorer.jsx    # 3D Interactive Equipment Explorer Sandbox
 │   │   └── guide/
-│   │       └── WorkerGuide.jsx          # Recruit Orientation & Voice Guide
+│   │       └── WorkerGuide.jsx          # Recruit Orientation & Audio Guide
 │   ├── locales/
 │   │   └── translations.js              # Multi-lingual Dictionary
 │   ├── utils/
@@ -121,19 +199,17 @@ The compiled Android APK is located at:
 ├── android/                             # Native Android Studio Project
 │   ├── app/src/main/
 │   │   ├── java/in/gov/jharkhand/surakshaar/MainActivity.java # WebChromeClient Override
-│   │   └── AndroidManifest.xml         # Camera, Mic & WakeLock Permissions
+│   │   └── AndroidManifest.xml         # Camera, Mic, WakeLock & Storage Permissions
 │   └── app/build/outputs/apk/debug/
 │       └── app-debug.apk                # Standalone Android APK (4.41 MB)
-├── capacitor.config.json                # Capacitor Configuration
+├── capacitor.config.json                # Capacitor Config
 ├── package.json                         # Dependencies & Scripts
-└── README.md                            # Documentation
+└── README.md                            # Complete Project Documentation
 ```
 
 ---
 
-## 📜 Compliance & Alignment
+## 📄 License & Attribution
 
-Aligned with:
-- **Directorate General of Mines Safety (DGMS), Dhanbad** Standards
-- **Mines Act, 1952** Section 22A Safety Directives
-- **Factories Act, 1948** Vocational Safety Certification Standards
+Distributed under the **MIT License**.  
+Developed for **Smart India Hackathon (SIH)** - Vocational Safety in Jharkhand's Mining & Steel Sector.
