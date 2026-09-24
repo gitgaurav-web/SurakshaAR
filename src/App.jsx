@@ -108,6 +108,14 @@ export default function App() {
         {activeTab === 'guide' && (
           <WorkerGuide currentLang={currentLang} />
         )}
+
+        {/* Safety Fallback to prevent any blank screen */}
+        {!['ar', 'game', 'assistant', 'explorer', 'assessment', 'certificate', 'admin', 'guide'].includes(activeTab) && (
+          <ARSimulatorContainer
+            currentLang={currentLang}
+            onModuleComplete={handleModuleComplete}
+          />
+        )}
       </main>
 
       <footer className="bg-slate-950 border-t border-slate-900 py-4 text-center text-[11px] text-slate-500">

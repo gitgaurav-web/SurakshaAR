@@ -41,8 +41,8 @@ export default function CertificateView({ currentLang, activeWorker, onOpenScann
     generateQR();
   }, [certHash, certVerifyUrl]);
 
-  // Client-side direct PDF File Export using jsPDF
-  const exportPDF = () => {
+  // Client-side direct PDF File Export using jsPDF with Native Capacitor Filesystem support
+  const exportPDF = async () => {
     setDownloading(true);
     try {
       const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
@@ -99,7 +99,26 @@ export default function CertificateView({ currentLang, activeWorker, onOpenScann
       doc.setTextColor(148, 163, 184);
       doc.text("Scan QR code using DGMS Inspector App or Web Admin Portal to verify authenticity.", 148, 182, { align: 'center' });
 
-      doc.save(`DGMS_Safety_Certificate_${worker.id}.pdf`);
+      // Check if running inside Capacitor Android Native app
+      if (window.Capacitor?.isNativePlatform?.()) {
+        try {
+          const { Filesystem, Directory } = await import('@capacitor/filesystem');
+          const pdfBase64 = doc.output('datauristring').split(',')[1];
+          const fileName = `DGMS_Safety_Certificate_${worker.id}.pdf`;
+          await Filesystem.writeFile({
+            path: fileName,
+            data: pdfBase64,
+            directory: Directory.Documents,
+            recursive: true
+          });
+          alert(`Certificate PDF saved successfully to your phone's Documents folder! (${fileName})`);
+        } catch (nativeErr) {
+          console.warn('Capacitor native write fallback to jsPDF save:', nativeErr);
+          doc.save(`DGMS_Safety_Certificate_${worker.id}.pdf`);
+        }
+      } else {
+        doc.save(`DGMS_Safety_Certificate_${worker.id}.pdf`);
+      }
     } catch (err) {
       console.error('PDF export error:', err);
     } finally {
