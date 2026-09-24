@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { Users, ShieldCheck, AlertTriangle, Building2, Download, Search, CheckCircle2, XCircle, Award, Eye, FileSpreadsheet, MapPin, Activity, Flame, ShieldAlert, Sparkles } from 'lucide-react';
+import { jsPDF } from 'jspdf';
+import { Users, ShieldCheck, AlertTriangle, Building2, Download, Search, CheckCircle2, XCircle, Award, Eye, FileSpreadsheet, MapPin, Activity, Flame, ShieldAlert, Sparkles, FileText } from 'lucide-react';
 import { TRANSLATIONS } from '../../locales/translations';
 import { getWorkerRoster } from '../../utils/offlineStorage';
 
@@ -54,6 +55,99 @@ export default function AdminDashboard({ currentLang, onOpenScanner, onViewWorke
     document.body.removeChild(link);
   };
 
+  const exportPDFReport = () => {
+    try {
+      const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+      doc.setFillColor(15, 23, 42);
+      doc.rect(0, 0, 210, 297, 'F');
+
+      doc.setDrawColor(245, 158, 11);
+      doc.setLineWidth(1.5);
+      doc.rect(6, 6, 198, 285);
+
+      doc.setTextColor(245, 158, 11);
+      doc.setFontSize(16);
+      doc.setFont('helvetica', 'bold');
+      doc.text("DGMS INDUSTRIAL SAFETY AUDIT REPORT", 105, 18, { align: 'center' });
+
+      doc.setFontSize(10);
+      doc.setTextColor(226, 232, 240);
+      doc.text("Cluster Compliance Telemetry - Dhanbad, Bokaro, Jamshedpur & Giridih", 105, 25, { align: 'center' });
+
+      doc.setFontSize(9);
+      doc.setTextColor(148, 163, 184);
+      doc.text(`Generated On: ${new Date().toLocaleString()}  |  Factories Act 1948 & Mines Act 1952 Standards`, 105, 31, { align: 'center' });
+
+      // Summary Box
+      doc.setFillColor(30, 41, 59);
+      doc.rect(12, 38, 186, 26, 'F');
+
+      doc.setFontSize(10);
+      doc.setTextColor(245, 158, 11);
+      doc.text(`Total Workers Tracked: ${totalCount}`, 20, 48);
+      doc.text(`Compliance Pass Rate: ${passRate}%`, 110, 48);
+      doc.text(`Certified Recruits: ${certifiedCount}`, 20, 56);
+      doc.text(`Orientation <30 Days: ${under30Count} Workers`, 110, 56);
+
+      // Mine Clusters Summary Table
+      doc.setFontSize(11);
+      doc.setTextColor(255, 255, 255);
+      doc.text("REGIONAL MINE & PLANT CLUSTER TELEMETRY", 12, 74);
+
+      let yPos = 82;
+      mineClusters.forEach(cluster => {
+        doc.setFillColor(30, 41, 59);
+        doc.rect(12, yPos, 186, 12, 'F');
+        doc.setFontSize(9);
+        doc.setTextColor(255, 255, 255);
+        doc.text(cluster.name, 16, yPos + 7);
+        doc.setTextColor(239, 68, 68);
+        doc.text(`[${cluster.risk}]`, 95, yPos + 7);
+        doc.setTextColor(16, 185, 129);
+        doc.text(`Pass Rate: ${cluster.passPct}% (${cluster.certified}/${cluster.activeWorkers})`, 140, yPos + 7);
+        yPos += 15;
+      });
+
+      // Roster Table Header
+      yPos += 5;
+      doc.setFontSize(11);
+      doc.setTextColor(245, 158, 11);
+      doc.text("WORKER SAFETY EVALUATION ROSTER", 12, yPos);
+      yPos += 8;
+
+      doc.setFillColor(15, 23, 42);
+      doc.setFontSize(8);
+      doc.setTextColor(148, 163, 184);
+      doc.text("ID / Name", 16, yPos);
+      doc.text("Sector", 70, yPos);
+      doc.text("Tenure", 125, yPos);
+      doc.text("Score", 155, yPos);
+      doc.text("Status", 175, yPos);
+      yPos += 6;
+
+      roster.slice(0, 12).forEach(w => {
+        doc.setFontSize(8);
+        doc.setTextColor(255, 255, 255);
+        doc.text(`${w.id} - ${w.name.substring(0, 16)}`, 16, yPos);
+        doc.text(w.mineSector.substring(0, 22), 70, yPos);
+        doc.text(`${w.orientationDays} Days`, 125, yPos);
+        doc.text(`${w.score}%`, 155, yPos);
+        if (w.certified) {
+          doc.setTextColor(16, 185, 129);
+          doc.text("CERTIFIED", 175, yPos);
+        } else {
+          doc.setTextColor(239, 68, 68);
+          doc.text("PENDING", 175, yPos);
+        }
+        yPos += 6;
+      });
+
+      doc.save(`DGMS_Cluster_Safety_Audit_Report_${new Date().toISOString().split('T')[0]}.pdf`);
+    } catch (err) {
+      console.error('Audit PDF Report Export Error:', err);
+    }
+  };
+
   return (
     <div className="max-w-7xl mx-auto p-4 sm:p-6 space-y-8">
       {/* Dashboard Top Header */}
@@ -73,21 +167,29 @@ export default function AdminDashboard({ currentLang, onOpenScanner, onViewWorke
           </p>
         </div>
 
-        <div className="flex items-center space-x-3">
+        <div className="flex flex-wrap items-center gap-2">
           <button
             onClick={onOpenScanner}
-            className="px-4 py-3 bg-slate-900 hover:bg-slate-800 text-slate-200 rounded-2xl text-xs font-black flex items-center space-x-2 border border-slate-700 shadow-lg"
+            className="px-3.5 py-2.5 bg-slate-900 hover:bg-slate-800 text-slate-200 rounded-2xl text-xs font-black flex items-center space-x-1.5 border border-slate-700 shadow-lg"
           >
             <ShieldCheck className="w-4 h-4 text-amber-400" />
-            <span>Verify Worker QR</span>
+            <span>Verify QR</span>
           </button>
 
           <button
             onClick={exportCSV}
-            className="px-5 py-3 bg-gradient-to-r from-amber-500 to-amber-600 text-slate-950 font-black rounded-2xl text-xs shadow-xl hover:brightness-110 flex items-center space-x-2"
+            className="px-3.5 py-2.5 bg-slate-800 hover:bg-slate-700 text-amber-300 font-bold rounded-2xl text-xs shadow-md border border-slate-700 flex items-center space-x-1.5"
           >
             <FileSpreadsheet className="w-4 h-4" />
-            <span>{t.exportReportBtn}</span>
+            <span>Export CSV</span>
+          </button>
+
+          <button
+            onClick={exportPDFReport}
+            className="px-4 py-2.5 bg-gradient-to-r from-amber-500 to-amber-600 text-slate-950 font-black rounded-2xl text-xs shadow-xl hover:brightness-110 flex items-center space-x-1.5"
+          >
+            <FileText className="w-4 h-4" />
+            <span>Audit PDF Report</span>
           </button>
         </div>
       </div>
