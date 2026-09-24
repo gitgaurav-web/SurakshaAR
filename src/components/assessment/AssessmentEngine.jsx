@@ -125,16 +125,30 @@ export default function AssessmentEngine({ currentLang, onPassAssessment }) {
             />
           </div>
 
-          {/* Question Text */}
-          <div className="bg-slate-950/80 p-5 rounded-2xl border border-slate-800 mb-5">
-            <h3 className="text-sm sm:text-base font-bold text-white leading-relaxed mb-1">
-              {currentLang === 'hi' ? currentQ.questionHi : currentLang === 'sat' ? currentQ.questionSat : currentQ.questionEn}
-            </h3>
-            {currentLang !== 'en' && (
-              <p className="text-xs text-slate-500 italic mt-1">
-                {currentQ.questionEn}
-              </p>
-            )}
+          {/* Question Text with Voice Audio Narrator Button */}
+          <div className="bg-slate-950/80 p-5 rounded-2xl border border-slate-800 mb-5 relative flex items-start justify-between gap-3">
+            <div>
+              <h3 className="text-sm sm:text-base font-bold text-white leading-relaxed mb-1">
+                {currentLang === 'hi' ? currentQ.questionHi : currentLang === 'sat' ? currentQ.questionSat : currentQ.questionEn}
+              </h3>
+              {currentLang !== 'en' && (
+                <p className="text-xs text-slate-500 italic mt-1">
+                  {currentQ.questionEn}
+                </p>
+              )}
+            </div>
+
+            <button
+              onClick={() => {
+                const speechText = currentLang === 'hi' ? currentQ.questionHi : currentLang === 'sat' ? currentQ.questionSat : currentQ.questionEn;
+                speakInstruction(speechText, currentLang);
+              }}
+              className="p-2.5 bg-amber-500/15 hover:bg-amber-500/25 text-amber-400 rounded-xl border border-amber-500/30 flex items-center space-x-1 text-xs font-bold shrink-0"
+              title="Listen Question Voice"
+            >
+              <Volume2 className="w-4 h-4 text-amber-400" />
+              <span className="hidden sm:inline">Listen</span>
+            </button>
           </div>
 
           {/* Options */}

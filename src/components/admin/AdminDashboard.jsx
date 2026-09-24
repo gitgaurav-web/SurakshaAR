@@ -11,6 +11,19 @@ export default function AdminDashboard({ currentLang, onOpenScanner, onViewWorke
   const [searchTerm, setSearchTerm] = useState('');
   const [sectorFilter, setSectorFilter] = useState('all');
 
+  // Real-time roster update listener without page refresh
+  React.useEffect(() => {
+    const updateRoster = () => {
+      setRoster(getWorkerRoster());
+    };
+    const interval = setInterval(updateRoster, 1000);
+    window.addEventListener('storage', updateRoster);
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener('storage', updateRoster);
+    };
+  }, []);
+
   const totalCount = roster.length;
   const certifiedCount = roster.filter(w => w.certified).length;
   const passRate = Math.round((certifiedCount / totalCount) * 100);
@@ -31,18 +44,20 @@ export default function AdminDashboard({ currentLang, onOpenScanner, onViewWorke
     return matchesSearch && matchesSector;
   });
 
+  const escapeCSV = (val) => `"${String(val || '').replace(/"/g, '""')}"`;
+
   const exportCSV = () => {
     const headers = ["Worker ID", "Name", "Language", "Mine Sector", "Orientation Days", "Pass Score %", "Certified", "Certificate Hash", "Date"];
     const rows = roster.map(w => [
-      w.id,
-      `"${w.name}"`,
-      w.language,
-      `"${w.mineSector}"`,
+      escapeCSV(w.id),
+      escapeCSV(w.name),
+      escapeCSV(w.language),
+      escapeCSV(w.mineSector),
       w.orientationDays,
       w.score,
       w.certified ? "YES" : "NO",
-      w.certHash || "N/A",
-      w.certDate || "N/A"
+      escapeCSV(w.certHash || "N/A"),
+      escapeCSV(w.certDate || "N/A")
     ]);
 
     const csvContent = "data:text/csv;charset=utf-8," + [headers.join(","), ...rows.map(r => r.join(","))].join("\n");
@@ -293,7 +308,7 @@ export default function AdminDashboard({ currentLang, onOpenScanner, onViewWorke
           </div>
 
           <div className="flex items-center space-x-1.5 overflow-x-auto w-full sm:w-auto">
-            {['all', 'dhanbad', 'bokaro', 'giridih'].map((sector) => (
+            {['all', 'dhanbad', 'bokaro', 'giridih', 'digwadih'].map((sector) => (
               <button
                 key={sector}
                 onClick={() => setSectorFilter(sector)}

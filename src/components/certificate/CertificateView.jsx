@@ -23,7 +23,10 @@ export default function CertificateView({ currentLang, activeWorker, onOpenScann
   };
 
   const certHash = worker.certHash || generateCertHash(worker.id);
-  const certVerifyUrl = `${window.location.origin}?verify=${certHash}`;
+  const baseUrl = (window.location.origin.includes('localhost') || window.location.origin.includes('127.0.0.1') || window.location.origin.includes('capacitor'))
+    ? 'https://suraksha-ar.dgms.gov.in'
+    : window.location.origin;
+  const certVerifyUrl = `${baseUrl}?verify=${certHash}`;
 
   useEffect(() => {
     async function generateQR() {
