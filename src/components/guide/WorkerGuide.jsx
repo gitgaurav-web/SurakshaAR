@@ -1,10 +1,12 @@
-import React from 'react';
-import { Flame, Wind, Cog, Award, Volume2, Camera, ShieldCheck, CheckCircle2 } from 'lucide-react';
+import React, { useState } from 'react';
+import { jsPDF } from 'jspdf';
+import { Flame, Wind, Cog, Award, Volume2, Camera, ShieldCheck, CheckCircle2, Download, FileText } from 'lucide-react';
 import { TRANSLATIONS } from '../../locales/translations';
 import { speakInstruction } from '../../utils/audioEngine';
 
 export default function WorkerGuide({ currentLang }) {
   const t = TRANSLATIONS[currentLang] || TRANSLATIONS.en;
+  const [downloading, setDownloading] = useState(false);
 
   const steps = [
     {
@@ -45,10 +47,76 @@ export default function WorkerGuide({ currentLang }) {
     }
   ];
 
+  const exportHandbookPDF = async () => {
+    setDownloading(true);
+    try {
+      const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+      doc.setFillColor(15, 23, 42);
+      doc.rect(0, 0, 210, 297, 'F');
+
+      doc.setDrawColor(245, 158, 11);
+      doc.setLineWidth(1.5);
+      doc.rect(6, 6, 198, 285);
+
+      doc.setTextColor(245, 158, 11);
+      doc.setFontSize(16);
+      doc.setFont('helvetica', 'bold');
+      doc.text("DGMS WORKER SAFETY ORIENTATION HANDBOOK", 105, 18, { align: 'center' });
+
+      doc.setFontSize(10);
+      doc.setTextColor(226, 232, 240);
+      doc.text("Jharkhand Mining & Manufacturing Vocational Safety Protocol", 105, 25, { align: 'center' });
+
+      doc.setFontSize(8);
+      doc.setTextColor(148, 163, 184);
+      doc.text("Factories Act 1948 & Mines Act 1952 Aligned Standards", 105, 31, { align: 'center' });
+
+      let yPos = 42;
+      steps.forEach(step => {
+        doc.setFillColor(30, 41, 59);
+        doc.rect(12, yPos, 186, 50, 'F');
+
+        doc.setFontSize(11);
+        doc.setTextColor(245, 158, 11);
+        doc.text(step.titleEn, 16, yPos + 8);
+
+        doc.setFontSize(9);
+        doc.setTextColor(255, 255, 255);
+        doc.text(`Hindi: ${step.titleHi}`, 16, yPos + 15);
+        doc.text(`Santali: ${step.titleSat}`, 16, yPos + 21);
+
+        doc.setFontSize(8);
+        doc.setTextColor(226, 232, 240);
+        const splitText = doc.splitTextToSize(step.descEn, 178);
+        doc.text(splitText, 16, yPos + 28);
+
+        yPos += 56;
+      });
+
+      if (window.Capacitor?.isNativePlatform?.()) {
+        const { Filesystem, Directory } = await import('@capacitor/filesystem');
+        const pdfBase64 = doc.output('datauristring').split(',')[1];
+        await Filesystem.writeFile({
+          path: `DGMS_Safety_Orientation_Handbook.pdf`,
+          data: pdfBase64,
+          directory: Directory.Documents,
+          recursive: true
+        });
+        alert("Safety Handbook PDF saved to your Documents folder!");
+      } else {
+        doc.save("DGMS_Safety_Orientation_Handbook.pdf");
+      }
+    } catch (err) {
+      console.error("Handbook PDF export error:", err);
+    } finally {
+      setDownloading(false);
+    }
+  };
+
   return (
     <div className="max-w-4xl mx-auto p-4 sm:p-6 space-y-6">
-      <div className="bg-gradient-to-r from-amber-500/10 via-slate-900 to-slate-900 border border-amber-500/30 p-6 rounded-3xl shadow-2xl">
-        <div className="flex items-center space-x-3 mb-2">
+      <div className="bg-gradient-to-r from-amber-500/10 via-slate-900 to-slate-900 border border-amber-500/30 p-6 rounded-3xl shadow-2xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+        <div className="flex items-center space-x-3">
           <div className="p-3 bg-amber-500 text-slate-950 rounded-2xl font-bold">
             <ShieldCheck className="w-6 h-6" />
           </div>
@@ -57,6 +125,15 @@ export default function WorkerGuide({ currentLang }) {
             <p className="text-xs text-slate-400">Jharkhand Industrial Safety Orientation Protocol</p>
           </div>
         </div>
+
+        <button
+          onClick={exportHandbookPDF}
+          disabled={downloading}
+          className="px-4 py-2.5 bg-gradient-to-r from-amber-500 to-amber-600 text-slate-950 font-black rounded-2xl text-xs shadow-lg hover:brightness-110 flex items-center space-x-1.5 shrink-0"
+        >
+          <FileText className="w-4 h-4" />
+          <span>{downloading ? 'Exporting...' : 'Download PDF Handbook'}</span>
+        </button>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
