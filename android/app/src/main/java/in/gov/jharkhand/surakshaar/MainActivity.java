@@ -10,7 +10,11 @@ public class MainActivity extends BridgeActivity {
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+    }
 
+    @Override
+    public void onStart() {
+        super.onStart();
         // Override WebView WebChromeClient to grant Camera & Mic permissions for WebAR
         if (this.bridge != null && this.bridge.getWebView() != null) {
             WebView webView = this.bridge.getWebView();
@@ -18,8 +22,11 @@ public class MainActivity extends BridgeActivity {
                 @Override
                 public void onPermissionRequest(final PermissionRequest request) {
                     runOnUiThread(() -> {
-                        // Grant requested resources (Camera, Microphone)
-                        request.grant(request.getResources());
+                        try {
+                            request.grant(request.getResources());
+                        } catch (Exception e) {
+                            e.printStackTrace();
+                        }
                     });
                 }
             });
