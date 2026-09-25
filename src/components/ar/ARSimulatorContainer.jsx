@@ -198,14 +198,21 @@ export default function ARSimulatorContainer({ currentLang, onModuleComplete, on
     const camera = new THREE.PerspectiveCamera(60, width / height, 0.1, 1000);
     camera.position.set(0, 1.2, 3.2);
 
-    const renderer = new THREE.WebGLRenderer({
-      canvas: canvasRef.current,
-      alpha: true,
-      antialias: true
-    });
-    renderer.setSize(width, height);
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-    rendererRef.current = renderer;
+    let renderer;
+    try {
+      renderer = new THREE.WebGLRenderer({
+        canvas: canvasRef.current,
+        alpha: true,
+        antialias: false,
+        powerPreference: 'high-performance',
+        failIfMajorPerformanceCaveat: false
+      });
+      renderer.setSize(width, height);
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+      rendererRef.current = renderer;
+    } catch (err) {
+      console.warn("WebGL initialization warning (using 2D visual fallback):", err);
+    }
 
     // Underground Mine Floor Plane
     const floorGeo = new THREE.PlaneGeometry(8, 8);
@@ -333,8 +340,10 @@ export default function ARSimulatorContainer({ currentLang, onModuleComplete, on
         group.rotation.x = rotation.x;
       }
 
-      renderer.render(scene, camera);
-      animationFrameRef.current = requestAnimationFrame(animate);
+      if (renderer) {
+        renderer.render(scene, camera);
+        animationFrameRef.current = requestAnimationFrame(animate);
+      }
     };
     animate();
 
