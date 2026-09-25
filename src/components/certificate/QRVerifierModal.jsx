@@ -19,14 +19,32 @@ export default function QRVerifierModal({ isOpen, onClose }) {
       if (videoRef.current && videoRef.current.srcObject) {
         const tracks = videoRef.current.srcObject.getTracks();
         tracks.forEach(track => track.stop());
+        videoRef.current.srcObject = null;
       }
 
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: { ideal: 'environment' }, width: { ideal: 640 }, height: { ideal: 480 } }
-      });
+      let stream = null;
+      const attempts = [
+        { video: { facingMode: { ideal: 'environment' }, width: { ideal: 1280 }, height: { ideal: 720 } } },
+        { video: { facingMode: { ideal: 'environment' } } },
+        { video: true }
+      ];
+
+      for (const constraint of attempts) {
+        try {
+          stream = await navigator.mediaDevices.getUserMedia(constraint);
+          if (stream) break;
+        } catch (e) {}
+      }
+
+      if (!stream) {
+        throw new Error('No compatible camera stream found');
+      }
 
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
+        try {
+          await videoRef.current.play();
+        } catch (pErr) {}
         setCameraActive(true);
       }
 

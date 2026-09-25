@@ -45,216 +45,66 @@ export default function ARSimulatorContainer({ currentLang, onModuleComplete }) 
   const extinguisherSprayRef = useRef(null);
 
   const [cameraActive, setCameraActive] = useState(false);
+  const [cameraFacing, setCameraFacing] = useState('environment'); // 'environment' or 'user'
+  const [cameraError, setCameraError] = useState(null);
   const [filterMode, setFilterMode] = useState('ar'); // 'ar', 'thermal', 'virtual'
-  const [highContrastMode, setHighContrastMode] = useState(false);
-  const [selectedModule, setSelectedModule] = useState('fire'); // 'fire', 'gas', 'machinery'
-  const [currentStep, setCurrentStep] = useState(1);
-  const [audioEnabled, setAudioEnabled] = useState(true);
-  const [moduleFinished, setModuleFinished] = useState(false);
-  
-  // 360° Orbit Rotation States for 3D View
-  const [rotation, setRotation] = useState({ x: 0, y: 0 });
-  const [isDragging, setIsDragging] = useState(false);
-  const previousTouchRef = useRef({ x: 0, y: 0 });
-  const [gyroAngle, setGyroAngle] = useState(0);
 
-  // Module 1: Fire Safety Drill States
-  const [extinguisherType, setExtinguisherType] = useState('dcp');
-  const [passState, setPassState] = useState({ pullPin: false, aimBase: false, squeezeTrigger: false, sweepProgress: 0 });
-
-  // Module 2: Gas SCBA Drill States
-  const [gasPpm, setGasPpm] = useState(1.85);
-  const [gasCalibrated, setGasCalibrated] = useState(false);
-  const [scbaMaskEquipped, setScbaMaskEquipped] = useState(false);
-  const [gasCutoffDone, setGasCutoffDone] = useState(false);
-  const [buddySignalSent, setBuddySignalSent] = useState(false);
-
-  // Module 3: Machinery LOTO Drill States
-  const [boundaryIdentified, setBoundaryIdentified] = useState(false);
-  const [breakerIsolated, setBreakerIsolated] = useState(false);
-  const [lotoApplied, setLotoApplied] = useState(false);
-  const [zeroEnergyVerified, setZeroEnergyVerified] = useState(false);
-
-  // Live Thermal Ticker State
-  const [thermalTick, setThermalTick] = useState(0);
-
-  // Live interval ticker for continuous sensor updates when Thermal Mode is enabled
-  useEffect(() => {
-    if (filterMode !== 'thermal') return;
-    const interval = setInterval(() => {
-      setThermalTick(t => t + 1);
-    }, 150);
-    return () => clearInterval(interval);
-  }, [filterMode]);
-
-  // Calculate dynamic real-time thermal temperature & status based on active module and drill state
-  const getThermalData = () => {
-    const now = Date.now();
-    const timeWave = Math.sin(now * 0.003) * 1.5;
-    const subWave = Math.cos(now * 0.005) * 0.8;
-    const noise = timeWave + subWave;
-
-    if (selectedModule === 'fire') {
-      if (moduleFinished || passState.sweepProgress >= 100) {
-        // Fire fully extinguished -> cooling to safe ambient
-        const baseTemp = 36.8 + noise * 0.4;
-        return {
-          temp: baseTemp.toFixed(1),
-          status: 'SAFE - RESIDUAL HEAT DISSIPATING',
-          badgeBg: 'bg-emerald-950/95 border-emerald-500/80 text-emerald-300 shadow-emerald-900/50',
-          crosshairColor: 'border-emerald-400',
-          dotColor: 'bg-emerald-400',
-          maxSpot: (baseTemp + 2.4).toFixed(1),
-          minSpot: (baseTemp - 3.1).toFixed(1),
-          emissivity: '0.94'
-        };
-      } else if (passState.squeezeTrigger || passState.sweepProgress > 0) {
-        // Active extinguishing in progress
-        const progress = passState.sweepProgress;
-        const baseTemp = 85.0 + (100 - progress) * 2.2 + noise * 2.5;
-        return {
-          temp: baseTemp.toFixed(1),
-          status: `COOLING IN PROGRESS (${progress}% EXTINGUISHED)`,
-          badgeBg: 'bg-amber-950/95 border-amber-500/80 text-amber-300 shadow-amber-900/50',
-          crosshairColor: 'border-amber-400',
-          dotColor: 'bg-amber-400',
-          maxSpot: (baseTemp + 14.2).toFixed(1),
-          minSpot: (baseTemp - 16.5).toFixed(1),
-          emissivity: '0.95'
-        };
-      } else {
-        // Active Uncontrolled Fire Hazard
-        const baseTemp = 318.4 + noise * 6.5;
-        return {
-          temp: baseTemp.toFixed(1),
-          status: '🔥 CRITICAL FLAME HEAT ANOMALY',
-          badgeBg: 'bg-red-950/95 border-red-500/80 text-red-300 shadow-red-900/50',
-          crosshairColor: 'border-red-500',
-          dotColor: 'bg-yellow-400 animate-ping',
-          maxSpot: (baseTemp + 28.5).toFixed(1),
-          minSpot: (baseTemp - 22.1).toFixed(1),
-          emissivity: '0.98'
-        };
-      }
-    } else if (selectedModule === 'gas') {
-      if (gasCutoffDone || moduleFinished) {
-        // Line isolated & ventilated
-        const baseTemp = 28.4 + noise * 0.3;
-        return {
-          temp: baseTemp.toFixed(1),
-          status: 'SAFE - VENTILATED MINE AMBIENT',
-          badgeBg: 'bg-emerald-950/95 border-emerald-500/80 text-emerald-300 shadow-emerald-900/50',
-          crosshairColor: 'border-emerald-400',
-          dotColor: 'bg-emerald-400',
-          maxSpot: (baseTemp + 1.6).toFixed(1),
-          minSpot: (baseTemp - 1.8).toFixed(1),
-          emissivity: '0.95'
-        };
-      } else if (gasPpm > 1.25) {
-        // Gas leak active -> cold methane depressurization plume
-        const baseTemp = 19.2 + noise * 0.8;
-        return {
-          temp: baseTemp.toFixed(1),
-          status: '⚠️ CH4 GAS EXPANSION COOLING PLUME',
-          badgeBg: 'bg-cyan-950/95 border-cyan-500/80 text-cyan-300 shadow-cyan-900/50',
-          crosshairColor: 'border-cyan-400',
-          dotColor: 'bg-cyan-400',
-          maxSpot: '29.5',
-          minSpot: (baseTemp - 2.8).toFixed(1),
-          emissivity: '0.93'
-        };
-      } else {
-        const baseTemp = 29.2 + noise * 0.4;
-        return {
-          temp: baseTemp.toFixed(1),
-          status: 'NOMINAL ATMOSPHERIC TEMP',
-          badgeBg: 'bg-emerald-950/95 border-emerald-500/80 text-emerald-300 shadow-emerald-900/50',
-          crosshairColor: 'border-emerald-400',
-          dotColor: 'bg-emerald-400',
-          maxSpot: (baseTemp + 1.2).toFixed(1),
-          minSpot: (baseTemp - 1.5).toFixed(1),
-          emissivity: '0.95'
-        };
-      }
-    } else if (selectedModule === 'machinery') {
-      if (lotoApplied || zeroEnergyVerified || moduleFinished) {
-        // Machine locked out & de-energized
-        const baseTemp = 33.6 + noise * 0.4;
-        return {
-          temp: baseTemp.toFixed(1),
-          status: 'SAFE - ZERO ENERGY ISOLATED',
-          badgeBg: 'bg-emerald-950/95 border-emerald-500/80 text-emerald-300 shadow-emerald-900/50',
-          crosshairColor: 'border-emerald-400',
-          dotColor: 'bg-emerald-400',
-          maxSpot: (baseTemp + 2.0).toFixed(1),
-          minSpot: (baseTemp - 2.2).toFixed(1),
-          emissivity: '0.95'
-        };
-      } else if (breakerIsolated) {
-        const baseTemp = 52.1 + noise * 1.5;
-        return {
-          temp: baseTemp.toFixed(1),
-          status: 'ISOLATED - MOTOR RESIDUAL COOLING',
-          badgeBg: 'bg-amber-950/95 border-amber-500/80 text-amber-300 shadow-amber-900/50',
-          crosshairColor: 'border-amber-400',
-          dotColor: 'bg-amber-400',
-          maxSpot: (baseTemp + 5.2).toFixed(1),
-          minSpot: (baseTemp - 6.0).toFixed(1),
-          emissivity: '0.96'
-        };
-      } else {
-        // Overheating conveyor bearing before LOTO isolation
-        const baseTemp = 98.4 + noise * 3.5;
-        return {
-          temp: baseTemp.toFixed(1),
-          status: '⚡ WARNING - CONVEYOR BEARING OVERHEAT',
-          badgeBg: 'bg-amber-950/95 border-amber-500/80 text-amber-300 shadow-amber-900/50',
-          crosshairColor: 'border-amber-500',
-          dotColor: 'bg-amber-400 animate-ping',
-          maxSpot: (baseTemp + 10.5).toFixed(1),
-          minSpot: '31.8',
-          emissivity: '0.97'
-        };
-      }
-    }
-
-    const baseTemp = 30.5 + noise * 0.5;
-    return {
-      temp: baseTemp.toFixed(1),
-      status: 'NOMINAL AMBIENT',
-      badgeBg: 'bg-emerald-950/95 border-emerald-500/80 text-emerald-300 shadow-emerald-900/50',
-      crosshairColor: 'border-emerald-400',
-      dotColor: 'bg-emerald-400',
-      maxSpot: (baseTemp + 2.0).toFixed(1),
-      minSpot: (baseTemp - 2.0).toFixed(1),
-      emissivity: '0.95'
-    };
-  };
-
-  // Start Camera Function
-  const startCamera = async () => {
+  // Bulletproof Camera Initialization with Multi-level Fallbacks & Explicit Play
+  const startCamera = async (facing = cameraFacing) => {
+    setCameraError(null);
     try {
       if (videoRef.current && videoRef.current.srcObject) {
         const tracks = videoRef.current.srcObject.getTracks();
         tracks.forEach(track => track.stop());
+        videoRef.current.srcObject = null;
       }
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: { ideal: 'environment' }, width: { ideal: 1280 }, height: { ideal: 720 } }
-      });
+
+      let stream = null;
+      const attempts = [
+        { video: { facingMode: { ideal: facing }, width: { ideal: 1280 }, height: { ideal: 720 } } },
+        { video: { facingMode: { ideal: facing } } },
+        { video: { facingMode: facing } },
+        { video: true }
+      ];
+
+      for (const constraint of attempts) {
+        try {
+          stream = await navigator.mediaDevices.getUserMedia(constraint);
+          if (stream) break;
+        } catch (e) {
+          // Continue to next fallback constraint
+        }
+      }
+
+      if (!stream) {
+        throw new Error('No compatible camera stream found');
+      }
+
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
+        try {
+          await videoRef.current.play();
+        } catch (pErr) {
+          console.warn('Video auto-play deferred:', pErr);
+        }
         setCameraActive(true);
       }
     } catch (err) {
-      console.warn('Camera stream unavailable, switching to 3D Virtual mode.', err);
+      console.warn('Camera stream unavailable, switching to 3D Virtual mode:', err);
+      setCameraError('Camera stream access denied or hardware busy.');
       setCameraActive(false);
-      setFilterMode('virtual');
     }
+  };
+
+  const toggleCameraFacing = async () => {
+    const nextFacing = cameraFacing === 'environment' ? 'user' : 'environment';
+    setCameraFacing(nextFacing);
+    await startCamera(nextFacing);
   };
 
   // Initialize Camera Stream on Mount
   useEffect(() => {
-    startCamera();
+    startCamera('environment');
     return () => {
       if (videoRef.current && videoRef.current.srcObject) {
         const tracks = videoRef.current.srcObject.getTracks();
@@ -689,7 +539,7 @@ export default function ARSimulatorContainer({ currentLang, onModuleComplete }) 
           <button
             onClick={() => {
               setFilterMode('ar');
-              if (!cameraActive) startCamera();
+              startCamera(cameraFacing);
             }}
             className={`px-3 py-1.5 min-h-[38px] rounded-lg text-xs font-bold transition-all flex items-center space-x-1 ${
               filterMode === 'ar' ? 'bg-amber-500 text-slate-950 shadow' : 'text-slate-400 hover:text-slate-200'
@@ -700,7 +550,10 @@ export default function ARSimulatorContainer({ currentLang, onModuleComplete }) 
           </button>
 
           <button
-            onClick={() => setFilterMode('thermal')}
+            onClick={() => {
+              setFilterMode('thermal');
+              if (!cameraActive) startCamera(cameraFacing);
+            }}
             className={`px-3 py-1.5 min-h-[38px] rounded-lg text-xs font-bold transition-all flex items-center space-x-1 ${
               filterMode === 'thermal' ? 'bg-red-600 text-white shadow ring-1 ring-red-400' : 'text-slate-400 hover:text-slate-200'
             }`}
@@ -717,6 +570,16 @@ export default function ARSimulatorContainer({ currentLang, onModuleComplete }) 
           >
             <Layers className="w-3.5 h-3.5" />
             <span>3D View</span>
+          </button>
+
+          {/* Camera Flip Button */}
+          <button
+            onClick={toggleCameraFacing}
+            className="p-2 bg-slate-800 hover:bg-slate-700 text-amber-400 hover:text-amber-300 rounded-lg border border-slate-700 transition-all text-xs font-bold flex items-center space-x-1"
+            title={`Flip Camera (Current: ${cameraFacing === 'environment' ? 'Rear' : 'Front'})`}
+          >
+            <RefreshCw className="w-3.5 h-3.5" />
+            <span className="text-[10px] hidden sm:inline">{cameraFacing === 'environment' ? 'Rear' : 'Front'}</span>
           </button>
         </div>
 
@@ -759,13 +622,47 @@ export default function ARSimulatorContainer({ currentLang, onModuleComplete }) 
           autoPlay
           playsInline
           muted
+          onLoadedMetadata={() => {
+            if (videoRef.current) {
+              videoRef.current.play().catch(() => {});
+            }
+          }}
           style={{
-            filter: filterMode === 'thermal' ? 'invert(0.85) hue-rotate(190deg) saturate(3.5) contrast(1.8)' : 'none'
+            filter: filterMode === 'thermal' ? 'invert(0.85) hue-rotate(190deg) saturate(3.5) contrast(1.8)' : 'none',
+            transform: cameraFacing === 'user' ? 'scaleX(-1)' : 'none'
           }}
           className={`absolute inset-0 w-full h-full object-cover transition-all ${
             cameraActive && filterMode !== 'virtual' ? 'opacity-85' : 'hidden'
           }`}
         />
+
+        {/* Camera Offline / Permissions Retry Overlay */}
+        {!cameraActive && filterMode !== 'virtual' && (
+          <div className="absolute inset-0 bg-slate-950/95 z-20 flex flex-col items-center justify-center p-4 text-center space-y-3">
+            <Camera className="w-9 h-9 text-amber-400 animate-bounce" />
+            <div className="space-y-1">
+              <h4 className="text-xs font-bold text-white">AR Live Camera Stream Offline</h4>
+              <p className="text-[11px] text-slate-400 max-w-xs leading-relaxed">
+                {cameraError || 'Grant camera permission or flip camera mode to align spatial tracking.'}
+              </p>
+            </div>
+            <div className="flex items-center space-x-2">
+              <button
+                onClick={() => startCamera(cameraFacing)}
+                className="px-3.5 py-2 bg-gradient-to-r from-amber-500 to-amber-600 text-slate-950 font-extrabold text-xs rounded-xl shadow-lg flex items-center space-x-1.5 hover:brightness-110"
+              >
+                <RefreshCw className="w-3.5 h-3.5" />
+                <span>Retry AR Camera</span>
+              </button>
+              <button
+                onClick={toggleCameraFacing}
+                className="px-3.5 py-2 bg-slate-800 text-amber-400 border border-slate-700 font-bold text-xs rounded-xl flex items-center space-x-1 hover:bg-slate-700"
+              >
+                <span>Switch to {cameraFacing === 'environment' ? 'Front' : 'Rear'}</span>
+              </button>
+            </div>
+          </div>
+        )}
 
         {/* 3D Virtual Mine Background Grid */}
         {(!cameraActive || filterMode === 'virtual') && (
