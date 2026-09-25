@@ -33,8 +33,15 @@ export default function App() {
 
   const t = TRANSLATIONS[currentLang] || TRANSLATIONS.en;
 
-  const handleModuleComplete = (moduleName, score) => {
-    console.log(`Module ${moduleName} completed with score ${score}`);
+  const handleClaimCertificate = (moduleName, score = 95) => {
+    const updated = saveWorkerEvaluation({
+      ...activeWorker,
+      score: score,
+      certified: true,
+      language: currentLang
+    });
+    setActiveWorker(updated);
+    setActiveTab('certificate');
   };
 
   const handlePassAssessment = (finalScore) => {
@@ -68,6 +75,7 @@ export default function App() {
             currentLang={currentLang}
             onModuleComplete={handleModuleComplete}
             onNavigateToQuiz={() => setActiveTab('assessment')}
+            onClaimCertificate={handleClaimCertificate}
           />
         )}
 
@@ -116,6 +124,7 @@ export default function App() {
             currentLang={currentLang}
             onModuleComplete={handleModuleComplete}
             onNavigateToQuiz={() => setActiveTab('assessment')}
+            onClaimCertificate={handleClaimCertificate}
           />
         )}
       </main>

@@ -33,7 +33,7 @@ function disposeThreeObject(obj) {
   }
 }
 
-export default function ARSimulatorContainer({ currentLang, onModuleComplete, onNavigateToQuiz }) {
+export default function ARSimulatorContainer({ currentLang, onModuleComplete, onNavigateToQuiz, onClaimCertificate }) {
   const t = TRANSLATIONS[currentLang] || TRANSLATIONS.en;
   
   const videoRef = useRef(null);
@@ -1222,10 +1222,10 @@ export default function ARSimulatorContainer({ currentLang, onModuleComplete, on
             <p className="text-xs text-slate-300 max-w-xs">
               Great job! You completed all practical safety protocols in compliance with DGMS rules.
             </p>
-            <div className="flex space-x-3 pt-2">
+            <div className="flex flex-wrap items-center justify-center gap-2.5 pt-2">
               <button
                 onClick={() => { setModuleFinished(false); setCurrentStep(1); }}
-                className="min-h-[48px] px-4 py-2.5 bg-slate-900 text-slate-300 rounded-xl text-xs font-bold border border-slate-700"
+                className="min-h-[44px] px-4 py-2 bg-slate-900 hover:bg-slate-800 text-slate-300 rounded-xl text-xs font-bold border border-slate-700 cursor-pointer"
               >
                 Re-drill Scenario
               </button>
@@ -1233,14 +1233,23 @@ export default function ARSimulatorContainer({ currentLang, onModuleComplete, on
                 onClick={() => {
                   setModuleFinished(false);
                   setCurrentStep(1);
-                  if (onNavigateToQuiz) {
-                    onNavigateToQuiz();
-                  }
+                  if (onNavigateToQuiz) onNavigateToQuiz();
                 }}
-                className="min-h-[48px] px-6 py-2.5 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 rounded-xl text-xs font-extrabold shadow-lg shadow-amber-500/20 transition-all flex items-center space-x-1.5 cursor-pointer active:scale-95"
+                className="min-h-[44px] px-4 py-2 bg-slate-800 hover:bg-slate-700 text-amber-300 border border-amber-500/40 rounded-xl text-xs font-extrabold shadow-md flex items-center space-x-1 cursor-pointer"
               >
                 <span>Proceed to Quiz</span>
-                <ArrowRight className="w-4 h-4 text-slate-950" />
+                <ArrowRight className="w-3.5 h-3.5 text-amber-400" />
+              </button>
+              <button
+                onClick={() => {
+                  setModuleFinished(false);
+                  setCurrentStep(1);
+                  if (onClaimCertificate) onClaimCertificate(selectedModule, 95);
+                }}
+                className="min-h-[44px] px-5 py-2 bg-gradient-to-r from-amber-500 via-amber-400 to-amber-600 hover:brightness-110 text-slate-950 rounded-xl text-xs font-black shadow-lg shadow-amber-500/25 transition-all flex items-center space-x-1.5 cursor-pointer active:scale-95"
+              >
+                <Award className="w-4 h-4 text-slate-950" />
+                <span>📜 Claim Accredited Certificate</span>
               </button>
             </div>
           </div>
