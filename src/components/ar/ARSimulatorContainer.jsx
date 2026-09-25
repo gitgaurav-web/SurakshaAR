@@ -48,6 +48,12 @@ export default function ARSimulatorContainer({ currentLang, onModuleComplete, on
   const [cameraFacing, setCameraFacing] = useState('environment'); // 'environment' or 'user'
   const [cameraError, setCameraError] = useState(null);
   const [filterMode, setFilterMode] = useState('ar'); // 'ar', 'thermal', 'virtual'
+  const [isDragging, setIsDragging] = useState(false);
+  const [rotation, setRotation] = useState({ x: 0, y: 0 });
+  const [gyroAngle, setGyroAngle] = useState(0);
+  const [breakerIsolated, setBreakerIsolated] = useState(false);
+  const [passState, setPassState] = useState({ pullPin: false, aimBase: false, squeezeLever: false, sweepSide: false });
+  const previousTouchRef = useRef({ x: 0, y: 0 });
 
   // Bulletproof Camera Initialization with Multi-level Fallbacks & Explicit Play
   const startCamera = async (facing = cameraFacing) => {
