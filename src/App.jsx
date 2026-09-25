@@ -67,6 +67,7 @@ export default function App() {
           <ARSimulatorContainer
             currentLang={currentLang}
             onModuleComplete={handleModuleComplete}
+            onNavigateToQuiz={() => setActiveTab('assessment')}
           />
         )}
 
@@ -114,6 +115,7 @@ export default function App() {
           <ARSimulatorContainer
             currentLang={currentLang}
             onModuleComplete={handleModuleComplete}
+            onNavigateToQuiz={() => setActiveTab('assessment')}
           />
         )}
       </main>

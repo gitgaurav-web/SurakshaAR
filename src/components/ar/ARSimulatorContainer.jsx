@@ -33,7 +33,7 @@ function disposeThreeObject(obj) {
   }
 }
 
-export default function ARSimulatorContainer({ currentLang, onModuleComplete }) {
+export default function ARSimulatorContainer({ currentLang, onModuleComplete, onNavigateToQuiz }) {
   const t = TRANSLATIONS[currentLang] || TRANSLATIONS.en;
   
   const videoRef = useRef(null);
@@ -1230,10 +1230,17 @@ export default function ARSimulatorContainer({ currentLang, onModuleComplete }) 
                 Re-drill Scenario
               </button>
               <button
-                onClick={advanceStep}
-                className="min-h-[48px] px-6 py-2.5 bg-amber-500 text-slate-950 rounded-xl text-xs font-extrabold shadow-lg"
+                onClick={() => {
+                  setModuleFinished(false);
+                  setCurrentStep(1);
+                  if (onNavigateToQuiz) {
+                    onNavigateToQuiz();
+                  }
+                }}
+                className="min-h-[48px] px-6 py-2.5 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 rounded-xl text-xs font-extrabold shadow-lg shadow-amber-500/20 transition-all flex items-center space-x-1.5 cursor-pointer active:scale-95"
               >
-                Proceed to Quiz
+                <span>Proceed to Quiz</span>
+                <ArrowRight className="w-4 h-4 text-slate-950" />
               </button>
             </div>
           </div>
