@@ -33,6 +33,16 @@ export default function App() {
 
   const t = TRANSLATIONS[currentLang] || TRANSLATIONS.en;
 
+  const handleModuleComplete = (moduleName, score = 90) => {
+    const updated = saveWorkerEvaluation({
+      ...activeWorker,
+      score: Math.max(activeWorker.score || 0, score),
+      certified: true,
+      language: currentLang
+    });
+    setActiveWorker(updated);
+  };
+
   const handleClaimCertificate = (moduleName, score = 95) => {
     const updated = saveWorkerEvaluation({
       ...activeWorker,
