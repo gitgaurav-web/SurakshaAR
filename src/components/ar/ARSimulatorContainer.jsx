@@ -815,58 +815,68 @@ export default function ARSimulatorContainer({ currentLang, onModuleComplete }) 
           </button>
         </div>
 
-        {/* High-Contrast Outdoor Mode & Audio Toggle */}
-        <div className="flex items-center space-x-1.5">
-          <button
-            onClick={() => setHighContrastMode(!highContrastMode)}
-            className={`p-2 min-h-[40px] rounded-xl border font-bold text-xs flex items-center justify-center ${
-              highContrastMode ? 'bg-yellow-400 text-black border-yellow-500' : 'bg-slate-900 text-slate-300 border-slate-800'
-            }`}
-            title="High-Contrast Outdoor Sunlight Mode"
-          >
-            <Sun className="w-4 h-4" />
-          </button>
-
-          <button
-            onClick={() => setAudioEnabled(!audioEnabled)}
-            className={`p-2 min-h-[40px] rounded-xl border text-xs font-semibold flex items-center justify-center ${
-              audioEnabled ? 'bg-emerald-950 text-emerald-400 border-emerald-500/40' : 'bg-slate-900 text-slate-400 border-slate-800'
-            }`}
-          >
-            {audioEnabled ? <Volume2 className="w-4 h-4" /> : <VolumeX className="w-4 h-4" />}
-          </button>
-        </div>
-      </div>
-
-      {/* 3. AR Camera, Thermal & 3D Interactive Viewport */}
-      <div 
-        onMouseDown={handleMouseDown}
-        onMouseMove={handleMouseMove}
-        onMouseUp={handleMouseUp}
-        onTouchStart={handleTouchStart}
-        onTouchMove={handleTouchMove}
-        onTouchEnd={handleTouchEnd}
-        className="relative w-full h-[360px] bg-slate-950 overflow-hidden flex items-center justify-center cursor-grab active:cursor-grabbing touch-none"
-      >
-        {/* Live Camera Feed */}
-        <video
-          ref={videoRef}
-          autoPlay
-          playsInline
-          muted
-          onLoadedMetadata={() => {
-            if (videoRef.current) {
-              videoRef.current.play().catch(() => {});
-            }
-          }}
-          style={{
-            filter: filterMode === 'thermal' ? 'invert(0.85) hue-rotate(190deg) saturate(3.5) contrast(1.8)' : 'none',
-            transform: cameraFacing === 'user' ? 'scaleX(-1)' : 'none'
-          }}
-          className={`absolute inset-0 w-full h-full object-cover transition-all ${
-            cameraActive && filterMode !== 'virtual' ? 'opacity-85' : 'hidden'
+      {/* High-Contrast Outdoor Sunlight Mode & Audio Toggle */}
+      <div className="flex items-center space-x-1.5">
+        <button
+          onClick={() => setHighContrastMode(!highContrastMode)}
+          className={`px-2.5 py-1.5 min-h-[38px] rounded-xl border text-xs font-bold transition-all flex items-center space-x-1 ${
+            highContrastMode 
+              ? 'bg-amber-400 text-slate-950 border-amber-300 shadow-lg shadow-amber-500/30' 
+              : 'bg-slate-900 text-slate-300 border-slate-800 hover:text-white hover:border-slate-700'
           }`}
-        />
+          title="High-Contrast Outdoor Sunlight Mode for Open-Cast Coal Mines (DGMS Reg 153)"
+        >
+          <Sun className={`w-3.5 h-3.5 ${highContrastMode ? 'text-slate-950 font-black' : 'text-amber-400'}`} />
+          <span className="text-[10px] hidden sm:inline">{highContrastMode ? 'Sunlight ON' : 'Sunlight HD'}</span>
+        </button>
+
+        <button
+          onClick={() => setAudioEnabled(!audioEnabled)}
+          className={`p-2 min-h-[38px] rounded-xl border text-xs font-semibold flex items-center justify-center ${
+            audioEnabled ? 'bg-emerald-950 text-emerald-400 border-emerald-500/40' : 'bg-slate-900 text-slate-400 border-slate-800'
+          }`}
+          title="Toggle Audio Voice Narration"
+        >
+          {audioEnabled ? <Volume2 className="w-4 h-4" /> : <VolumeX className="w-4 h-4" />}
+        </button>
+      </div>
+    </div>
+
+    {/* 3. AR Camera, Thermal & 3D Interactive Viewport */}
+    <div 
+      onMouseDown={handleMouseDown}
+      onMouseMove={handleMouseMove}
+      onMouseUp={handleMouseUp}
+      onTouchStart={handleTouchStart}
+      onTouchMove={handleTouchMove}
+      onTouchEnd={handleTouchEnd}
+      className={`relative w-full h-[360px] overflow-hidden flex items-center justify-center cursor-grab active:cursor-grabbing touch-none ${
+        highContrastMode ? 'bg-black ring-2 ring-amber-400/80 shadow-2xl' : 'bg-slate-950'
+      }`}
+    >
+      {/* Live Camera Feed */}
+      <video
+        ref={videoRef}
+        autoPlay
+        playsInline
+        muted
+        onLoadedMetadata={() => {
+          if (videoRef.current) {
+            videoRef.current.play().catch(() => {});
+          }
+        }}
+        style={{
+          filter: filterMode === 'thermal' 
+            ? 'invert(0.85) hue-rotate(190deg) saturate(3.5) contrast(1.8)' 
+            : highContrastMode 
+              ? 'contrast(2.2) brightness(1.3) saturate(2.2)' 
+              : 'none',
+          transform: cameraFacing === 'user' ? 'scaleX(-1)' : 'none'
+        }}
+        className={`absolute inset-0 w-full h-full object-cover transition-all ${
+          cameraActive && filterMode !== 'virtual' ? 'opacity-85' : 'hidden'
+        }`}
+      />
 
         {/* Camera Offline / Permissions Retry Overlay */}
         {!cameraActive && filterMode !== 'virtual' && (
@@ -909,10 +919,22 @@ export default function ARSimulatorContainer({ currentLang, onModuleComplete }) 
         <canvas 
           ref={canvasRef} 
           style={{
-            filter: filterMode === 'thermal' ? 'sepia(0.8) hue-rotate(140deg) saturate(3) contrast(1.5)' : 'none'
+            filter: filterMode === 'thermal' 
+              ? 'sepia(0.8) hue-rotate(140deg) saturate(3) contrast(1.5)' 
+              : highContrastMode 
+                ? 'contrast(1.6) brightness(1.2) saturate(1.8)' 
+                : 'none'
           }}
           className="absolute inset-0 w-full h-full pointer-events-none z-10" 
         />
+
+        {/* Sunlight HD Active Overlay Badge */}
+        {highContrastMode && (
+          <div className="absolute bottom-2 right-2 z-25 bg-amber-400 text-slate-950 px-2.5 py-1 rounded-full text-[10px] font-black shadow-lg flex items-center space-x-1 animate-pulse pointer-events-none">
+            <Sun className="w-3 h-3 text-slate-950" />
+            <span>☀️ OUTDOOR SUNLIGHT HD ACTIVE</span>
+          </div>
+        )}
 
         {/* Dynamic HUD Overlay: Gas CH4 PPM & Environmental Telemetry */}
         <div className="absolute top-3 left-3 z-20 flex items-center space-x-2 bg-slate-950/90 px-3 py-1.5 rounded-full border border-red-500/40 shadow-lg">
