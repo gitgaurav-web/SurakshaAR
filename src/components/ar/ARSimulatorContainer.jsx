@@ -52,8 +52,59 @@ export default function ARSimulatorContainer({ currentLang, onModuleComplete, on
   const [rotation, setRotation] = useState({ x: 0, y: 0 });
   const [gyroAngle, setGyroAngle] = useState(0);
   const [breakerIsolated, setBreakerIsolated] = useState(false);
-  const [passState, setPassState] = useState({ pullPin: false, aimBase: false, squeezeLever: false, sweepSide: false });
+  const [passState, setPassState] = useState({ pullPin: false, aimBase: false, squeezeLever: false, sweepSide: false, sweepProgress: 0 });
+  const [selectedModule, setSelectedModule] = useState('fire'); // 'fire', 'gas', 'machinery'
+  const [currentStep, setCurrentStep] = useState(1);
+  const [audioEnabled, setAudioEnabled] = useState(true);
+  const [extinguisherType, setExtinguisherType] = useState('dcp'); // 'dcp', 'co2', 'water'
+  const [gasCalibrated, setGasCalibrated] = useState(false);
+  const [gasPpm, setGasPpm] = useState(1.45);
+  const [scbaMaskEquipped, setScbaMaskEquipped] = useState(false);
+  const [gasCutoffDone, setGasCutoffDone] = useState(false);
+  const [buddySignalSent, setBuddySignalSent] = useState(false);
+  const [boundaryIdentified, setBoundaryIdentified] = useState(false);
+  const [lotoApplied, setLotoApplied] = useState(false);
+  const [zeroEnergyVerified, setZeroEnergyVerified] = useState(false);
+  const [moduleFinished, setModuleFinished] = useState(false);
+  const [highContrastMode, setHighContrastMode] = useState(false);
   const previousTouchRef = useRef({ x: 0, y: 0 });
+
+  const getThermalData = () => {
+    if (selectedModule === 'fire') {
+      return {
+        temp: passState.sweepProgress >= 100 ? 32.4 : 318.5,
+        status: passState.sweepProgress >= 100 ? 'NORMALIZE - FIRE EXTINGUISHED' : 'CRITICAL FLAME ANOMALY DETECTED',
+        badgeBg: passState.sweepProgress >= 100 ? 'bg-emerald-950/90 border-emerald-500 text-emerald-300' : 'bg-red-950/90 border-red-500 text-red-300',
+        crosshairColor: passState.sweepProgress >= 100 ? 'border-emerald-400' : 'border-red-500 animate-pulse',
+        dotColor: passState.sweepProgress >= 100 ? 'bg-emerald-400' : 'bg-red-500 animate-ping',
+        maxSpot: passState.sweepProgress >= 100 ? 35.0 : 412.0,
+        minSpot: 28.1,
+        emissivity: 0.95
+      };
+    } else if (selectedModule === 'gas') {
+      return {
+        temp: gasCutoffDone ? 26.5 : 84.2,
+        status: gasCutoffDone ? 'VALVE SECURED - PRESSURE NORMAL' : 'METHANE HIGH-PRESSURE FRICTION LEAK',
+        badgeBg: gasCutoffDone ? 'bg-emerald-950/90 border-emerald-500 text-emerald-300' : 'bg-amber-950/90 border-amber-500 text-amber-300',
+        crosshairColor: gasCutoffDone ? 'border-emerald-400' : 'border-amber-400 animate-pulse',
+        dotColor: gasCutoffDone ? 'bg-emerald-400' : 'bg-amber-400 animate-ping',
+        maxSpot: gasCutoffDone ? 29.0 : 110.0,
+        minSpot: 24.2,
+        emissivity: 0.92
+      };
+    } else {
+      return {
+        temp: breakerIsolated ? 34.0 : 98.4,
+        status: breakerIsolated ? 'CIRCUIT BREAKER OFF - SAFE ZONE' : 'BEARING OVERHEAT - HIGH RISK',
+        badgeBg: breakerIsolated ? 'bg-emerald-950/90 border-emerald-500 text-emerald-300' : 'bg-red-950/90 border-red-500 text-red-300',
+        crosshairColor: breakerIsolated ? 'border-emerald-400' : 'border-red-500 animate-pulse',
+        dotColor: breakerIsolated ? 'bg-emerald-400' : 'bg-red-500 animate-ping',
+        maxSpot: breakerIsolated ? 38.0 : 125.0,
+        minSpot: 30.5,
+        emissivity: 0.97
+      };
+    }
+  };
 
   // Bulletproof Camera Initialization with Multi-level Fallbacks & Explicit Play
   const startCamera = async (facing = cameraFacing) => {
