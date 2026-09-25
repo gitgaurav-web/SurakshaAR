@@ -75,6 +75,162 @@ export default function ARSimulatorContainer({ currentLang, onModuleComplete }) 
   const [lotoApplied, setLotoApplied] = useState(false);
   const [zeroEnergyVerified, setZeroEnergyVerified] = useState(false);
 
+  // Live Thermal Ticker State
+  const [thermalTick, setThermalTick] = useState(0);
+
+  // Live interval ticker for continuous sensor updates when Thermal Mode is enabled
+  useEffect(() => {
+    if (filterMode !== 'thermal') return;
+    const interval = setInterval(() => {
+      setThermalTick(t => t + 1);
+    }, 150);
+    return () => clearInterval(interval);
+  }, [filterMode]);
+
+  // Calculate dynamic real-time thermal temperature & status based on active module and drill state
+  const getThermalData = () => {
+    const now = Date.now();
+    const timeWave = Math.sin(now * 0.003) * 1.5;
+    const subWave = Math.cos(now * 0.005) * 0.8;
+    const noise = timeWave + subWave;
+
+    if (selectedModule === 'fire') {
+      if (moduleFinished || passState.sweepProgress >= 100) {
+        // Fire fully extinguished -> cooling to safe ambient
+        const baseTemp = 36.8 + noise * 0.4;
+        return {
+          temp: baseTemp.toFixed(1),
+          status: 'SAFE - RESIDUAL HEAT DISSIPATING',
+          badgeBg: 'bg-emerald-950/95 border-emerald-500/80 text-emerald-300 shadow-emerald-900/50',
+          crosshairColor: 'border-emerald-400',
+          dotColor: 'bg-emerald-400',
+          maxSpot: (baseTemp + 2.4).toFixed(1),
+          minSpot: (baseTemp - 3.1).toFixed(1),
+          emissivity: '0.94'
+        };
+      } else if (passState.squeezeTrigger || passState.sweepProgress > 0) {
+        // Active extinguishing in progress
+        const progress = passState.sweepProgress;
+        const baseTemp = 85.0 + (100 - progress) * 2.2 + noise * 2.5;
+        return {
+          temp: baseTemp.toFixed(1),
+          status: `COOLING IN PROGRESS (${progress}% EXTINGUISHED)`,
+          badgeBg: 'bg-amber-950/95 border-amber-500/80 text-amber-300 shadow-amber-900/50',
+          crosshairColor: 'border-amber-400',
+          dotColor: 'bg-amber-400',
+          maxSpot: (baseTemp + 14.2).toFixed(1),
+          minSpot: (baseTemp - 16.5).toFixed(1),
+          emissivity: '0.95'
+        };
+      } else {
+        // Active Uncontrolled Fire Hazard
+        const baseTemp = 318.4 + noise * 6.5;
+        return {
+          temp: baseTemp.toFixed(1),
+          status: '🔥 CRITICAL FLAME HEAT ANOMALY',
+          badgeBg: 'bg-red-950/95 border-red-500/80 text-red-300 shadow-red-900/50',
+          crosshairColor: 'border-red-500',
+          dotColor: 'bg-yellow-400 animate-ping',
+          maxSpot: (baseTemp + 28.5).toFixed(1),
+          minSpot: (baseTemp - 22.1).toFixed(1),
+          emissivity: '0.98'
+        };
+      }
+    } else if (selectedModule === 'gas') {
+      if (gasCutoffDone || moduleFinished) {
+        // Line isolated & ventilated
+        const baseTemp = 28.4 + noise * 0.3;
+        return {
+          temp: baseTemp.toFixed(1),
+          status: 'SAFE - VENTILATED MINE AMBIENT',
+          badgeBg: 'bg-emerald-950/95 border-emerald-500/80 text-emerald-300 shadow-emerald-900/50',
+          crosshairColor: 'border-emerald-400',
+          dotColor: 'bg-emerald-400',
+          maxSpot: (baseTemp + 1.6).toFixed(1),
+          minSpot: (baseTemp - 1.8).toFixed(1),
+          emissivity: '0.95'
+        };
+      } else if (gasPpm > 1.25) {
+        // Gas leak active -> cold methane depressurization plume
+        const baseTemp = 19.2 + noise * 0.8;
+        return {
+          temp: baseTemp.toFixed(1),
+          status: '⚠️ CH4 GAS EXPANSION COOLING PLUME',
+          badgeBg: 'bg-cyan-950/95 border-cyan-500/80 text-cyan-300 shadow-cyan-900/50',
+          crosshairColor: 'border-cyan-400',
+          dotColor: 'bg-cyan-400',
+          maxSpot: '29.5',
+          minSpot: (baseTemp - 2.8).toFixed(1),
+          emissivity: '0.93'
+        };
+      } else {
+        const baseTemp = 29.2 + noise * 0.4;
+        return {
+          temp: baseTemp.toFixed(1),
+          status: 'NOMINAL ATMOSPHERIC TEMP',
+          badgeBg: 'bg-emerald-950/95 border-emerald-500/80 text-emerald-300 shadow-emerald-900/50',
+          crosshairColor: 'border-emerald-400',
+          dotColor: 'bg-emerald-400',
+          maxSpot: (baseTemp + 1.2).toFixed(1),
+          minSpot: (baseTemp - 1.5).toFixed(1),
+          emissivity: '0.95'
+        };
+      }
+    } else if (selectedModule === 'machinery') {
+      if (lotoApplied || zeroEnergyVerified || moduleFinished) {
+        // Machine locked out & de-energized
+        const baseTemp = 33.6 + noise * 0.4;
+        return {
+          temp: baseTemp.toFixed(1),
+          status: 'SAFE - ZERO ENERGY ISOLATED',
+          badgeBg: 'bg-emerald-950/95 border-emerald-500/80 text-emerald-300 shadow-emerald-900/50',
+          crosshairColor: 'border-emerald-400',
+          dotColor: 'bg-emerald-400',
+          maxSpot: (baseTemp + 2.0).toFixed(1),
+          minSpot: (baseTemp - 2.2).toFixed(1),
+          emissivity: '0.95'
+        };
+      } else if (breakerIsolated) {
+        const baseTemp = 52.1 + noise * 1.5;
+        return {
+          temp: baseTemp.toFixed(1),
+          status: 'ISOLATED - MOTOR RESIDUAL COOLING',
+          badgeBg: 'bg-amber-950/95 border-amber-500/80 text-amber-300 shadow-amber-900/50',
+          crosshairColor: 'border-amber-400',
+          dotColor: 'bg-amber-400',
+          maxSpot: (baseTemp + 5.2).toFixed(1),
+          minSpot: (baseTemp - 6.0).toFixed(1),
+          emissivity: '0.96'
+        };
+      } else {
+        // Overheating conveyor bearing before LOTO isolation
+        const baseTemp = 98.4 + noise * 3.5;
+        return {
+          temp: baseTemp.toFixed(1),
+          status: '⚡ WARNING - CONVEYOR BEARING OVERHEAT',
+          badgeBg: 'bg-amber-950/95 border-amber-500/80 text-amber-300 shadow-amber-900/50',
+          crosshairColor: 'border-amber-500',
+          dotColor: 'bg-amber-400 animate-ping',
+          maxSpot: (baseTemp + 10.5).toFixed(1),
+          minSpot: '31.8',
+          emissivity: '0.97'
+        };
+      }
+    }
+
+    const baseTemp = 30.5 + noise * 0.5;
+    return {
+      temp: baseTemp.toFixed(1),
+      status: 'NOMINAL AMBIENT',
+      badgeBg: 'bg-emerald-950/95 border-emerald-500/80 text-emerald-300 shadow-emerald-900/50',
+      crosshairColor: 'border-emerald-400',
+      dotColor: 'bg-emerald-400',
+      maxSpot: (baseTemp + 2.0).toFixed(1),
+      minSpot: (baseTemp - 2.0).toFixed(1),
+      emissivity: '0.95'
+    };
+  };
+
   // Start Camera Function
   const startCamera = async () => {
     try {
@@ -637,17 +793,46 @@ export default function ARSimulatorContainer({ currentLang, onModuleComplete }) 
           <span className="text-[11px] font-mono font-bold text-amber-400">O2: 20.9%</span>
         </div>
 
-        {/* Thermal Heatmap Crosshair Overlay when Thermal View is active */}
-        {filterMode === 'thermal' && (
-          <div className="absolute inset-0 pointer-events-none z-20 flex flex-col items-center justify-center">
-            <div className="w-24 h-24 border-2 border-red-500/80 rounded-full flex items-center justify-center animate-pulse">
-              <div className="w-2.5 h-2.5 bg-yellow-400 rounded-full" />
+        {/* Thermal Heatmap Crosshair & FLIR Telemetry Overlay when Thermal View is active */}
+        {filterMode === 'thermal' && (() => {
+          const thermal = getThermalData();
+          return (
+            <div className="absolute inset-0 pointer-events-none z-20 flex flex-col items-center justify-center p-2">
+              {/* FLIR Spectrum Side Scale Indicator */}
+              <div className="absolute right-3 top-12 bottom-12 w-3.5 rounded-full bg-gradient-to-t from-blue-700 via-yellow-500 to-red-600 border border-slate-700 shadow-xl flex flex-col justify-between items-center py-1">
+                <span className="text-[7px] font-mono text-white font-black bg-slate-950/90 px-0.5 rounded">HIGH</span>
+                <span className="text-[7px] font-mono text-white font-black bg-slate-950/90 px-0.5 rounded">LOW</span>
+              </div>
+
+              {/* Center Crosshair Target */}
+              <div className={`w-28 h-28 border-2 ${thermal.crosshairColor} rounded-full flex items-center justify-center relative transition-all`}>
+                <div className={`w-3 h-3 ${thermal.dotColor} rounded-full shadow-lg`} />
+                <div className="absolute top-0 w-0.5 h-3 bg-white/70" />
+                <div className="absolute bottom-0 w-0.5 h-3 bg-white/70" />
+                <div className="absolute left-0 h-0.5 w-3 bg-white/70" />
+                <div className="absolute right-0 h-0.5 w-3 bg-white/70" />
+              </div>
+
+              {/* Real-time Dynamic FLIR Thermal Readout Box */}
+              <div className={`mt-3 px-4 py-2 rounded-xl border-2 backdrop-blur-md shadow-2xl flex flex-col items-center space-y-1 transition-all ${thermal.badgeBg}`}>
+                <div className="flex items-center space-x-2">
+                  <span className="text-[10px] font-mono font-black tracking-wider uppercase text-slate-300">THERMAL SPOT:</span>
+                  <span className="text-sm font-mono font-black text-white drop-shadow-md">{thermal.temp}°C</span>
+                </div>
+
+                <span className="text-[10px] font-bold tracking-tight text-center">{thermal.status}</span>
+
+                <div className="pt-1 border-t border-white/15 flex items-center space-x-2.5 text-[9px] font-mono opacity-90">
+                  <span>MAX: {thermal.maxSpot}°C</span>
+                  <span>|</span>
+                  <span>MIN: {thermal.minSpot}°C</span>
+                  <span>|</span>
+                  <span>ε: {thermal.emissivity}</span>
+                </div>
+              </div>
             </div>
-            <div className="mt-2 bg-slate-950/90 px-3 py-1 rounded-md border border-red-500 text-[11px] font-mono font-bold text-yellow-300 shadow-md">
-              THERMAL TEMP: {(185.4 + Math.sin(Date.now() * 0.003) * 15).toFixed(1)}°C HEAT ANOMALY
-            </div>
-          </div>
-        )}
+          );
+        })()}
 
         {/* --- MODULE 1: FIRE SAFETY INTERACTIVE DRILL UI --- */}
         {selectedModule === 'fire' && currentStep === 2 && (
