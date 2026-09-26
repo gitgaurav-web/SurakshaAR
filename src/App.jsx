@@ -15,6 +15,7 @@ import PreShiftFatigueScanner from './components/scanner/PreShiftFatigueScanner'
 import GasPlumeSimulator from './components/gas/GasPlumeSimulator';
 import { TRANSLATIONS } from './locales/translations';
 import { saveWorkerEvaluation } from './utils/offlineStorage';
+import { UserCheck, ShieldCheck, MapPin, Sparkles, Activity } from 'lucide-react';
 
 export default function App() {
   const [currentLang, setCurrentLang] = useState('hi');
@@ -65,6 +66,32 @@ export default function App() {
         setActiveTab={setActiveTab}
         onOpenSos={() => setIsSosOpen(true)}
       />
+
+      {/* Industrial Worker Quick-HUD Status Ribbon */}
+      <div className="bg-slate-900/90 border-b border-slate-800 py-2 px-3 sm:px-6 shadow-md backdrop-blur-md">
+        <div className="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-2 text-xs font-mono">
+          <div className="flex items-center space-x-2">
+            <div className="p-1 bg-amber-500/20 text-amber-400 rounded-lg border border-amber-500/30">
+              <UserCheck className="w-3.5 h-3.5" />
+            </div>
+            <span className="text-slate-300 font-bold">{activeWorker.name}</span>
+            <span className="text-slate-500">|</span>
+            <span className="text-amber-400 font-bold">{activeWorker.id}</span>
+          </div>
+
+          <div className="flex items-center space-x-3 text-[11px]">
+            <span className="hidden md:flex items-center space-x-1 text-slate-400">
+              <MapPin className="w-3 h-3 text-cyan-400" />
+              <span>{activeWorker.mineSector}</span>
+            </span>
+
+            <span className="flex items-center space-x-1 px-2 py-0.5 bg-emerald-950/80 border border-emerald-500/40 text-emerald-400 rounded-md font-bold">
+              <ShieldCheck className="w-3 h-3 text-emerald-400" />
+              <span>DGMS CERTIFIED (92%)</span>
+            </span>
+          </div>
+        </div>
+      </div>
 
       <main className="flex-1 max-w-7xl w-full mx-auto p-2 sm:p-4 lg:p-6">
         {activeTab === 'ar' && (
@@ -130,7 +157,7 @@ export default function App() {
           <WorkerGuide currentLang={currentLang} />
         )}
 
-        {/* Safety Fallback to prevent any blank screen */}
+        {/* Safety Fallback */}
         {!['ar', 'telemetry', 'scanner', 'gas', 'game', 'assistant', 'explorer', 'assessment', 'certificate', 'admin', 'guide'].includes(activeTab) && (
           <ARSimulatorContainer
             currentLang={currentLang}
@@ -142,11 +169,12 @@ export default function App() {
       </main>
 
       <footer className="bg-slate-950 border-t border-slate-900 py-4 text-center text-[11px] text-slate-500">
-        <p className="font-semibold text-slate-400">
-          SurakshaAR - DGMS Industrial Safety Training Simulator
+        <p className="font-semibold text-slate-400 flex items-center justify-center gap-1">
+          <Sparkles className="w-3.5 h-3.5 text-amber-400 inline" />
+          <span>SurakshaAR - DGMS Industrial Safety Training Simulator</span>
         </p>
-        <p className="text-[10px]">
-          Factories Act 1948 & Mines Act 1952 Aligned | Santali (Ol Chiki) & Hindi
+        <p className="text-[10px] text-slate-500 mt-0.5">
+          Factories Act 1948 & Mines Act 1952 Aligned | Santali (Ol Chiki) & Hindi Support
         </p>
       </footer>
 
