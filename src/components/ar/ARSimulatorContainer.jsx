@@ -75,25 +75,51 @@ export default function ARSimulatorContainer({ currentLang, onModuleComplete }) 
   const [lotoApplied, setLotoApplied] = useState(false);
   const [zeroEnergyVerified, setZeroEnergyVerified] = useState(false);
 
-  // Start Camera Function
-  const startCamera = async () => {
+  const [cameraFacing, setCameraFacing] = useState('environment');
+  const [cameraError, setCameraError] = useState(false);
+
+  // Start Camera Function with Constraint Fallbacks & Webview Compatibility
+  const startCamera = async (facing = cameraFacing) => {
+    setCameraError(false);
     try {
       if (videoRef.current && videoRef.current.srcObject) {
         const tracks = videoRef.current.srcObject.getTracks();
         tracks.forEach(track => track.stop());
       }
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: { ideal: 'environment' }, width: { ideal: 1280 }, height: { ideal: 720 } }
-      });
+
+      let stream;
+      try {
+        stream = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode: { ideal: facing }, width: { ideal: 1280 }, height: { ideal: 720 } },
+          audio: false
+        });
+      } catch (idealErr) {
+        console.warn('Ideal facingMode camera failed, trying basic video constraint.', idealErr);
+        stream = await navigator.mediaDevices.getUserMedia({
+          video: true,
+          audio: false
+        });
+      }
+
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
+        videoRef.current.setAttribute('playsinline', 'true');
+        videoRef.current.muted = true;
+        await videoRef.current.play().catch(e => console.warn('Video play auto-start:', e));
         setCameraActive(true);
+        setCameraFacing(facing);
       }
     } catch (err) {
       console.warn('Camera stream unavailable, switching to 3D Virtual mode.', err);
       setCameraActive(false);
-      setFilterMode('virtual');
+      setCameraError(true);
     }
+  };
+
+  // Toggle Rear / Front Camera Facing Mode
+  const toggleCameraFacing = () => {
+    const nextFacing = cameraFacing === 'environment' ? 'user' : 'environment';
+    startCamera(nextFacing);
   };
 
   // Initialize Camera Stream on Mount
@@ -135,10 +161,12 @@ export default function ARSimulatorContainer({ currentLang, onModuleComplete }) 
     if (!isDragging) return;
     const deltaX = e.clientX - previousTouchRef.current.x;
     const deltaY = e.clientY - previousTouchRef.current.y;
-    setRotation(prev => ({
-      x: Math.max(-1, Math.min(1, prev.x + deltaY * 0.008)),
-      y: prev.y + deltaX * 0.01
-    }));
+    const newRot = {
+      x: Math.max(-1, Math.min(1, rotationRef.current.x + deltaY * 0.008)),
+      y: rotationRef.current.y + deltaX * 0.01
+    };
+    rotationRef.current = newRot;
+    setRotation(newRot);
     previousTouchRef.current = { x: e.clientX, y: e.clientY };
   };
 
@@ -155,10 +183,12 @@ export default function ARSimulatorContainer({ currentLang, onModuleComplete }) 
     if (!isDragging || e.touches.length !== 1) return;
     const deltaX = e.touches[0].clientX - previousTouchRef.current.x;
     const deltaY = e.touches[0].clientY - previousTouchRef.current.y;
-    setRotation(prev => ({
-      x: Math.max(-1, Math.min(1, prev.x + deltaY * 0.008)),
-      y: prev.y + deltaX * 0.01
-    }));
+    const newRot = {
+      x: Math.max(-1, Math.min(1, rotationRef.current.x + deltaY * 0.008)),
+      y: rotationRef.current.y + deltaX * 0.01
+    };
+    rotationRef.current = newRot;
+    setRotation(newRot);
     previousTouchRef.current = { x: e.touches[0].clientX, y: e.touches[0].clientY };
   };
 
@@ -248,8 +278,8 @@ export default function ARSimulatorContainer({ currentLang, onModuleComplete }) 
 
       const group = scene.getObjectByName("arGroup");
       if (group) {
-        group.rotation.y = rotation.y + (gyroAngle * Math.PI / 180) + Math.sin(elapsedTime * 0.5) * 0.04;
-        group.rotation.x = rotation.x;
+        group.rotation.y = rotationRef.current.y + (gyroAngleRef.current * Math.PI / 180) + Math.sin(elapsedTime * 0.5) * 0.04;
+        group.rotation.x = rotationRef.current.x;
       }
 
       renderer.render(scene, camera);
@@ -273,7 +303,7 @@ export default function ARSimulatorContainer({ currentLang, onModuleComplete }) 
       disposeThreeObject(scene);
       renderer.dispose();
     };
-  }, [rotation, gyroAngle]);
+  }, []);
 
   // Update 3D Geometries & Visual Effects on Module/Step Changes
   useEffect(() => {
@@ -698,6 +728,18 @@ export default function ARSimulatorContainer({ currentLang, onModuleComplete }) 
             <Layers className="w-3.5 h-3.5" />
             <span>3D View</span>
           </button>
+
+          {/* Flip Camera Button */}
+          {filterMode !== 'virtual' && (
+            <button
+              onClick={toggleCameraFacing}
+              className="px-2.5 py-1.5 min-h-[38px] rounded-lg bg-slate-800 hover:bg-slate-700 text-amber-300 border border-slate-700 text-xs font-bold transition-all flex items-center space-x-1"
+              title="Switch Rear/Front Camera"
+            >
+              <RefreshCw className="w-3.5 h-3.5" />
+              <span className="text-[10px] uppercase font-mono">{cameraFacing === 'environment' ? 'REAR' : 'FRONT'}</span>
+            </button>
+          )}
         </div>
 
         {/* High-Contrast Outdoor Mode & Audio Toggle */}
@@ -743,9 +785,37 @@ export default function ARSimulatorContainer({ currentLang, onModuleComplete }) 
             filter: filterMode === 'thermal' ? 'invert(0.85) hue-rotate(190deg) saturate(3.5) contrast(1.8)' : 'none'
           }}
           className={`absolute inset-0 w-full h-full object-cover transition-all ${
-            cameraActive && filterMode !== 'virtual' ? 'opacity-85' : 'hidden'
+            cameraActive && filterMode !== 'virtual' ? 'opacity-100' : 'hidden'
           }`}
         />
+
+        {/* Camera Permission / Retry Bar when in AR mode but camera is inactive */}
+        {filterMode === 'ar' && (!cameraActive || cameraError) && (
+          <div className="absolute inset-0 bg-slate-950/90 backdrop-blur-sm z-30 flex flex-col items-center justify-center p-4 text-center space-y-3">
+            <Camera className="w-10 h-10 text-amber-400 animate-pulse" />
+            <div className="space-y-1">
+              <h4 className="text-sm font-bold text-white">AR Live Camera Off or Blocked</h4>
+              <p className="text-xs text-slate-400 max-w-xs">
+                Tap below to grant camera permissions or switch camera view for real-world AR inspection.
+              </p>
+            </div>
+            <div className="flex items-center space-x-2">
+              <button
+                onClick={() => startCamera('environment')}
+                className="px-4 py-2 bg-gradient-to-r from-amber-500 to-amber-600 text-slate-950 font-black rounded-xl text-xs shadow-lg flex items-center space-x-1.5"
+              >
+                <Camera className="w-4 h-4" />
+                <span>Enable AR Camera</span>
+              </button>
+              <button
+                onClick={() => setFilterMode('virtual')}
+                className="px-3 py-2 bg-slate-800 text-slate-300 hover:text-white rounded-xl text-xs font-semibold border border-slate-700"
+              >
+                Use 3D Mode
+              </button>
+            </div>
+          </div>
+        )}
 
         {/* 3D Virtual Mine Background Grid */}
         {(!cameraActive || filterMode === 'virtual') && (
