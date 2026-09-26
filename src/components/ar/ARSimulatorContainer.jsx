@@ -3,7 +3,7 @@ import * as THREE from 'three';
 import { 
   Camera, Volume2, VolumeX, ShieldAlert, CheckCircle2, RotateCcw, 
   ChevronRight, ChevronLeft, Flame, Wind, Cog, AlertTriangle, 
-  Lock, RefreshCw, Layers, Eye, Sun, Moon, Activity, Zap, CheckSquare
+  Lock, RefreshCw, Layers, Eye, Sun, Moon, Activity, Zap, CheckSquare, Award
 } from 'lucide-react';
 import { TRANSLATIONS } from '../../locales/translations';
 import { speakInstruction, playAudioBeep } from '../../utils/audioEngine';
@@ -47,7 +47,6 @@ export default function ARSimulatorContainer({ currentLang, onModuleComplete, on
   const [cameraActive, setCameraActive] = useState(false);
   const [filterMode, setFilterMode] = useState('ar'); // 'ar', 'thermal', 'virtual'
   const [highContrastMode, setHighContrastMode] = useState(false);
-  const [showHazardPanel, setShowHazardPanel] = useState(true);
   const [selectedModule, setSelectedModule] = useState('fire'); // 'fire', 'gas', 'machinery'
   const [currentStep, setCurrentStep] = useState(1);
   const [audioEnabled, setAudioEnabled] = useState(true);
@@ -895,16 +894,6 @@ export default function ARSimulatorContainer({ currentLang, onModuleComplete, on
             <span>3D View</span>
           </button>
 
-          <button
-            onClick={() => setShowHazardPanel(!showHazardPanel)}
-            className={`px-3 py-1.5 min-h-[38px] rounded-lg text-xs font-bold transition-all flex items-center space-x-1 ${
-              showHazardPanel ? 'bg-gradient-to-r from-red-600 to-amber-600 text-white shadow ring-1 ring-red-400' : 'text-slate-400 hover:text-slate-200'
-            }`}
-          >
-            <ShieldAlert className="w-3.5 h-3.5" />
-            <span>Hazard Panel</span>
-          </button>
-
           {/* Flip Camera Button */}
           {filterMode !== 'virtual' && (
             <button
@@ -1284,77 +1273,6 @@ export default function ARSimulatorContainer({ currentLang, onModuleComplete, on
           </div>
         )}
       </div>
-
-      {/* Real-Time AI Hazard Detection Panel */}
-      {showHazardPanel && (
-        <div className="mx-3 my-2 bg-slate-900/95 border border-amber-500/40 rounded-2xl p-3 sm:p-4 space-y-3 shadow-2xl">
-          <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-800 pb-2.5">
-            <div className="flex items-center space-x-2.5">
-              <div className="p-2 bg-gradient-to-br from-red-500 to-amber-600 text-slate-950 rounded-xl font-bold shadow">
-                <ShieldAlert className="w-5 h-5 animate-pulse text-white" />
-              </div>
-              <div>
-                <h4 className="text-xs font-black text-white uppercase tracking-wider flex items-center gap-1.5">
-                  <span>AI Real-Time Hazard Detection Panel</span>
-                  <span className="px-2 py-0.5 rounded-full bg-red-500/20 text-red-400 text-[9px] font-mono border border-red-500/30 font-bold">
-                    LIVE AI SCAN
-                  </span>
-                </h4>
-                <p className="text-[10px] text-slate-400">DGMS Automated Risk Analysis & Real-Time Sensor Telemetry HUD</p>
-              </div>
-            </div>
-
-            <div className="flex items-center space-x-2">
-              <span className="px-3 py-1 rounded-xl bg-amber-950/80 border border-amber-500/50 text-amber-400 font-mono text-xs font-bold shadow-sm flex items-center space-x-1">
-                <Award className="w-3.5 h-3.5 text-amber-400" />
-                <span>TRAINING SCORE: <strong className="text-white font-black text-xs">92%</strong></span>
-              </span>
-              <span className="px-2.5 py-1 rounded-xl bg-red-950/80 border border-red-500/60 text-red-400 font-mono text-[10px] font-bold tracking-wider">
-                THREAT LEVEL: HIGH
-              </span>
-            </div>
-          </div>
-
-          {/* Hazard Indicators Grid */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 text-xs">
-            <div className="p-2.5 bg-slate-950/90 border border-red-500/50 rounded-xl space-y-1">
-              <div className="flex justify-between items-center text-[10px] text-red-400 font-mono font-bold">
-                <span>CH4 GAS SEEPAGE</span>
-                <span className="w-2 h-2 rounded-full bg-red-500 animate-ping" />
-              </div>
-              <span className="text-sm font-black font-mono text-red-300 block">{gasPpm}% VOL</span>
-              <span className="text-[9px] text-slate-400 block">Explosive Threshold</span>
-            </div>
-
-            <div className="p-2.5 bg-slate-950/90 border border-amber-500/50 rounded-xl space-y-1">
-              <div className="flex justify-between items-center text-[10px] text-amber-400 font-mono font-bold">
-                <span>FLAME TARGET BASE</span>
-                <span className="w-2 h-2 rounded-full bg-amber-400" />
-              </div>
-              <span className="text-sm font-black font-mono text-amber-300 block">{passState.aimBase ? 'BASE LOCKED' : 'AIM TARGET'}</span>
-              <span className="text-[9px] text-slate-400 block">P.A.S.S. Drill Base</span>
-            </div>
-
-            <div className="p-2.5 bg-slate-950/90 border border-cyan-500/50 rounded-xl space-y-1">
-              <div className="flex justify-between items-center text-[10px] text-cyan-400 font-mono font-bold">
-                <span>CONVEYOR LOTO</span>
-                <span className="w-2 h-2 rounded-full bg-cyan-400" />
-              </div>
-              <span className="text-sm font-black font-mono text-cyan-300 block">{breakerIsolated ? 'ISOLATED' : 'LINE ACTIVE'}</span>
-              <span className="text-[9px] text-slate-400 block">Energy Lock Breaker</span>
-            </div>
-
-            <div className="p-2.5 bg-slate-950/90 border border-emerald-500/50 rounded-xl space-y-1">
-              <div className="flex justify-between items-center text-[10px] text-emerald-400 font-mono font-bold">
-                <span>PPE GEAR COMPLIANCE</span>
-                <span className="w-2 h-2 rounded-full bg-emerald-400" />
-              </div>
-              <span className="text-sm font-black font-mono text-emerald-300 block">100% PASS</span>
-              <span className="text-[9px] text-slate-400 block">Helmet & SCBA Mask</span>
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* 4. Bottom Navigation & Instructions */}
       <div className="p-3 bg-slate-900 border-t border-slate-800 flex items-center justify-between">
