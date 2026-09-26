@@ -33,7 +33,7 @@ function disposeThreeObject(obj) {
   }
 }
 
-export default function ARSimulatorContainer({ currentLang, onModuleComplete, onNavigateToQuiz, onClaimCertificate }) {
+export default function ARSimulatorContainer({ currentLang, onModuleComplete }) {
   const t = TRANSLATIONS[currentLang] || TRANSLATIONS.en;
   
   const videoRef = useRef(null);
@@ -45,123 +45,60 @@ export default function ARSimulatorContainer({ currentLang, onModuleComplete, on
   const extinguisherSprayRef = useRef(null);
 
   const [cameraActive, setCameraActive] = useState(false);
-  const [cameraFacing, setCameraFacing] = useState('environment'); // 'environment' or 'user'
-  const [cameraError, setCameraError] = useState(null);
   const [filterMode, setFilterMode] = useState('ar'); // 'ar', 'thermal', 'virtual'
-  const [isDragging, setIsDragging] = useState(false);
-  const [rotation, setRotation] = useState({ x: 0, y: 0 });
-  const [gyroAngle, setGyroAngle] = useState(0);
-  const [breakerIsolated, setBreakerIsolated] = useState(false);
-  const [passState, setPassState] = useState({ pullPin: false, aimBase: false, squeezeLever: false, sweepSide: false, sweepProgress: 0 });
+  const [highContrastMode, setHighContrastMode] = useState(false);
   const [selectedModule, setSelectedModule] = useState('fire'); // 'fire', 'gas', 'machinery'
   const [currentStep, setCurrentStep] = useState(1);
   const [audioEnabled, setAudioEnabled] = useState(true);
-  const [extinguisherType, setExtinguisherType] = useState('dcp'); // 'dcp', 'co2', 'water'
+  const [moduleFinished, setModuleFinished] = useState(false);
+  
+  // 360° Orbit Rotation States for 3D View
+  const [rotation, setRotation] = useState({ x: 0, y: 0 });
+  const [isDragging, setIsDragging] = useState(false);
+  const previousTouchRef = useRef({ x: 0, y: 0 });
+  const [gyroAngle, setGyroAngle] = useState(0);
+
+  // Module 1: Fire Safety Drill States
+  const [extinguisherType, setExtinguisherType] = useState('dcp');
+  const [passState, setPassState] = useState({ pullPin: false, aimBase: false, squeezeTrigger: false, sweepProgress: 0 });
+
+  // Module 2: Gas SCBA Drill States
+  const [gasPpm, setGasPpm] = useState(1.85);
   const [gasCalibrated, setGasCalibrated] = useState(false);
-  const [gasPpm, setGasPpm] = useState(1.45);
   const [scbaMaskEquipped, setScbaMaskEquipped] = useState(false);
   const [gasCutoffDone, setGasCutoffDone] = useState(false);
   const [buddySignalSent, setBuddySignalSent] = useState(false);
+
+  // Module 3: Machinery LOTO Drill States
   const [boundaryIdentified, setBoundaryIdentified] = useState(false);
+  const [breakerIsolated, setBreakerIsolated] = useState(false);
   const [lotoApplied, setLotoApplied] = useState(false);
   const [zeroEnergyVerified, setZeroEnergyVerified] = useState(false);
-  const [moduleFinished, setModuleFinished] = useState(false);
-  const [highContrastMode, setHighContrastMode] = useState(false);
-  const previousTouchRef = useRef({ x: 0, y: 0 });
 
-  const getThermalData = () => {
-    if (selectedModule === 'fire') {
-      return {
-        temp: passState.sweepProgress >= 100 ? 32.4 : 318.5,
-        status: passState.sweepProgress >= 100 ? 'NORMALIZE - FIRE EXTINGUISHED' : 'CRITICAL FLAME ANOMALY DETECTED',
-        badgeBg: passState.sweepProgress >= 100 ? 'bg-emerald-950/90 border-emerald-500 text-emerald-300' : 'bg-red-950/90 border-red-500 text-red-300',
-        crosshairColor: passState.sweepProgress >= 100 ? 'border-emerald-400' : 'border-red-500 animate-pulse',
-        dotColor: passState.sweepProgress >= 100 ? 'bg-emerald-400' : 'bg-red-500 animate-ping',
-        maxSpot: passState.sweepProgress >= 100 ? 35.0 : 412.0,
-        minSpot: 28.1,
-        emissivity: 0.95
-      };
-    } else if (selectedModule === 'gas') {
-      return {
-        temp: gasCutoffDone ? 26.5 : 84.2,
-        status: gasCutoffDone ? 'VALVE SECURED - PRESSURE NORMAL' : 'METHANE HIGH-PRESSURE FRICTION LEAK',
-        badgeBg: gasCutoffDone ? 'bg-emerald-950/90 border-emerald-500 text-emerald-300' : 'bg-amber-950/90 border-amber-500 text-amber-300',
-        crosshairColor: gasCutoffDone ? 'border-emerald-400' : 'border-amber-400 animate-pulse',
-        dotColor: gasCutoffDone ? 'bg-emerald-400' : 'bg-amber-400 animate-ping',
-        maxSpot: gasCutoffDone ? 29.0 : 110.0,
-        minSpot: 24.2,
-        emissivity: 0.92
-      };
-    } else {
-      return {
-        temp: breakerIsolated ? 34.0 : 98.4,
-        status: breakerIsolated ? 'CIRCUIT BREAKER OFF - SAFE ZONE' : 'BEARING OVERHEAT - HIGH RISK',
-        badgeBg: breakerIsolated ? 'bg-emerald-950/90 border-emerald-500 text-emerald-300' : 'bg-red-950/90 border-red-500 text-red-300',
-        crosshairColor: breakerIsolated ? 'border-emerald-400' : 'border-red-500 animate-pulse',
-        dotColor: breakerIsolated ? 'bg-emerald-400' : 'bg-red-500 animate-ping',
-        maxSpot: breakerIsolated ? 38.0 : 125.0,
-        minSpot: 30.5,
-        emissivity: 0.97
-      };
-    }
-  };
-
-  // Bulletproof Camera Initialization with Multi-level Fallbacks & Explicit Play
-  const startCamera = async (facing = cameraFacing) => {
-    setCameraError(null);
+  // Start Camera Function
+  const startCamera = async () => {
     try {
       if (videoRef.current && videoRef.current.srcObject) {
         const tracks = videoRef.current.srcObject.getTracks();
         tracks.forEach(track => track.stop());
-        videoRef.current.srcObject = null;
       }
-
-      let stream = null;
-      const attempts = [
-        { video: { facingMode: { ideal: facing }, width: { ideal: 1280 }, height: { ideal: 720 } } },
-        { video: { facingMode: { ideal: facing } } },
-        { video: { facingMode: facing } },
-        { video: true }
-      ];
-
-      for (const constraint of attempts) {
-        try {
-          stream = await navigator.mediaDevices.getUserMedia(constraint);
-          if (stream) break;
-        } catch (e) {
-          // Continue to next fallback constraint
-        }
-      }
-
-      if (!stream) {
-        throw new Error('No compatible camera stream found');
-      }
-
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: { ideal: 'environment' }, width: { ideal: 1280 }, height: { ideal: 720 } }
+      });
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
-        try {
-          await videoRef.current.play();
-        } catch (pErr) {
-          console.warn('Video auto-play deferred:', pErr);
-        }
         setCameraActive(true);
       }
     } catch (err) {
-      console.warn('Camera stream unavailable, switching to 3D Virtual mode:', err);
-      setCameraError('Camera stream access denied or hardware busy.');
+      console.warn('Camera stream unavailable, switching to 3D Virtual mode.', err);
       setCameraActive(false);
+      setFilterMode('virtual');
     }
-  };
-
-  const toggleCameraFacing = async () => {
-    const nextFacing = cameraFacing === 'environment' ? 'user' : 'environment';
-    setCameraFacing(nextFacing);
-    await startCamera(nextFacing);
   };
 
   // Initialize Camera Stream on Mount
   useEffect(() => {
-    startCamera('environment');
+    startCamera();
     return () => {
       if (videoRef.current && videoRef.current.srcObject) {
         const tracks = videoRef.current.srcObject.getTracks();
@@ -227,22 +164,7 @@ export default function ARSimulatorContainer({ currentLang, onModuleComplete, on
 
   const handleTouchEnd = () => setIsDragging(false);
 
-  const [autoRotate, setAutoRotate] = useState(false);
-  const autoRotateRef = useRef(false);
-  autoRotateRef.current = autoRotate;
-
-  const breakerIsolatedRef = useRef(breakerIsolated);
-  breakerIsolatedRef.current = breakerIsolated;
-
-  const passStateRef = useRef(passState);
-  passStateRef.current = passState;
-
-  const resetView = () => {
-    setRotation({ x: 0, y: 0 });
-    setAutoRotate(false);
-  };
-
-  // Initialize Three.js WebGL Scene & Industrial Underground Environment
+  // Initialize Three.js WebGL Scene
   useEffect(() => {
     if (!canvasRef.current) return;
 
@@ -255,73 +177,51 @@ export default function ARSimulatorContainer({ currentLang, onModuleComplete, on
     const camera = new THREE.PerspectiveCamera(60, width / height, 0.1, 1000);
     camera.position.set(0, 1.2, 3.2);
 
-    let renderer;
-    try {
-      renderer = new THREE.WebGLRenderer({
-        canvas: canvasRef.current,
-        alpha: true,
-        antialias: false,
-        powerPreference: 'high-performance',
-        failIfMajorPerformanceCaveat: false
-      });
-      renderer.setSize(width, height);
-      renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-      rendererRef.current = renderer;
-    } catch (err) {
-      console.warn("WebGL initialization warning (using 2D visual fallback):", err);
-    }
+    const renderer = new THREE.WebGLRenderer({
+      canvas: canvasRef.current,
+      alpha: true,
+      antialias: true
+    });
+    renderer.setSize(width, height);
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    rendererRef.current = renderer;
 
-    // Underground Mine Floor Plane
-    const floorGeo = new THREE.PlaneGeometry(8, 8);
-    const floorMat = new THREE.MeshStandardMaterial({ color: 0x0f172a, roughness: 0.85, metalness: 0.2 });
-    const floorMesh = new THREE.Mesh(floorGeo, floorMat);
-    floorMesh.rotation.x = -Math.PI / 2;
-    floorMesh.position.y = -0.75;
-    scene.add(floorMesh);
-
-    // Industrial Mine Shaft Grid Helper
-    const gridHelper = new THREE.GridHelper(8, 16, 0xf59e0b, 0x334155);
-    gridHelper.position.y = -0.74;
-    scene.add(gridHelper);
-
-    // Multi-source Scene Lighting
-    const ambientLight = new THREE.AmbientLight(0xffffff, 1.3);
+    const ambientLight = new THREE.AmbientLight(0xffffff, 1.5);
     scene.add(ambientLight);
 
-    const dirLight = new THREE.DirectionalLight(0xfffaed, 2.2);
+    const dirLight = new THREE.DirectionalLight(0xfffaed, 2.0);
     dirLight.position.set(3, 5, 4);
     scene.add(dirLight);
 
-    const fireLight = new THREE.PointLight(0xf59e0b, 2.5, 10);
-    fireLight.name = "fireLight";
-    fireLight.position.set(-0.3, 0.4, -1.4);
-    scene.add(fireLight);
+    const pointLight = new THREE.PointLight(0xffaa00, 2.5, 12);
+    pointLight.position.set(0, 2.5, 1);
+    scene.add(pointLight);
 
     const arGroup = new THREE.Group();
     arGroup.name = "arGroup";
     scene.add(arGroup);
 
-    // Ambient Underground Dust & Spark Particles
-    const particleCount = 250;
+    // Ambient Environmental Particle System
+    const particleCount = 200;
     const particleGeo = new THREE.BufferGeometry();
     const positions = new Float32Array(particleCount * 3);
     const colors = new Float32Array(particleCount * 3);
 
     for (let i = 0; i < particleCount * 3; i += 3) {
-      positions[i] = (Math.random() - 0.5) * 4;
-      positions[i + 1] = Math.random() * 2.5;
-      positions[i + 2] = -0.5 - Math.random() * 3;
+      positions[i] = (Math.random() - 0.5) * 3;
+      positions[i + 1] = Math.random() * 2;
+      positions[i + 2] = -0.5 - Math.random() * 2;
 
-      colors[i] = 0.95;
-      colors[i + 1] = 0.65;
-      colors[i + 2] = 0.15;
+      colors[i] = 1.0;
+      colors[i + 1] = 0.5 + Math.random() * 0.4;
+      colors[i + 2] = 0.1;
     }
 
     particleGeo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
     particleGeo.setAttribute('color', new THREE.BufferAttribute(colors, 3));
 
     const particleMat = new THREE.PointsMaterial({
-      size: 0.05,
+      size: 0.06,
       vertexColors: true,
       transparent: true,
       opacity: 0.75,
@@ -337,56 +237,11 @@ export default function ARSimulatorContainer({ currentLang, onModuleComplete, on
     const animate = () => {
       const elapsedTime = clock.getElapsedTime();
 
-      // Auto-Orbit 360° Animation
-      if (autoRotateRef.current) {
-        setRotation(prev => ({ ...prev, y: prev.y + 0.006 }));
-      }
-
-      // Dynamic Flame Core Wobble & Light Flicker
-      const flameCore = scene.getObjectByName("flameCore");
-      if (flameCore) {
-        flameCore.scale.y = 1.0 + Math.sin(elapsedTime * 10) * 0.18;
-        flameCore.scale.x = 1.0 + Math.cos(elapsedTime * 8) * 0.12;
-      }
-      const lightObj = scene.getObjectByName("fireLight");
-      if (lightObj) {
-        lightObj.intensity = 2.5 + Math.sin(elapsedTime * 14) * 0.8;
-      }
-
-      // Swirling Methane Gas Cloud
-      const gasMesh = scene.getObjectByName("gasCloud");
-      if (gasMesh) {
-        gasMesh.rotation.y = elapsedTime * 0.25;
-        gasMesh.rotation.z = Math.sin(elapsedTime * 0.6) * 0.1;
-      }
-
-      // Rotating Conveyor Roller
-      const beltRoller = scene.getObjectByName("beltRoller");
-      if (beltRoller && !breakerIsolatedRef.current) {
-        beltRoller.rotation.x += 0.05;
-      }
-
-      // Extinguisher Spray Particles Animation
-      const sprayPoints = scene.getObjectByName("extinguisherSpray");
-      if (sprayPoints) {
-        const posAttr = sprayPoints.geometry.attributes.position;
-        for (let i = 0; i < posAttr.count * 3; i += 3) {
-          posAttr.array[i] -= 0.04;
-          posAttr.array[i + 1] += (Math.random() - 0.5) * 0.015;
-          if (posAttr.array[i] < -0.8) {
-            posAttr.array[i] = 0.02;
-            posAttr.array[i + 1] = 0.34;
-          }
-        }
-        posAttr.needsUpdate = true;
-      }
-
-      // Ambient Dust Float
       if (particlesRef.current) {
         const posAttr = particlesRef.current.geometry.attributes.position;
         for (let i = 1; i < posAttr.count * 3; i += 3) {
-          posAttr.array[i] += 0.01;
-          if (posAttr.array[i] > 2.4) posAttr.array[i] = 0;
+          posAttr.array[i] += 0.012;
+          if (posAttr.array[i] > 2.2) posAttr.array[i] = 0;
         }
         posAttr.needsUpdate = true;
       }
@@ -397,10 +252,8 @@ export default function ARSimulatorContainer({ currentLang, onModuleComplete, on
         group.rotation.x = rotation.x;
       }
 
-      if (renderer) {
-        renderer.render(scene, camera);
-        animationFrameRef.current = requestAnimationFrame(animate);
-      }
+      renderer.render(scene, camera);
+      animationFrameRef.current = requestAnimationFrame(animate);
     };
     animate();
 
@@ -433,272 +286,115 @@ export default function ARSimulatorContainer({ currentLang, onModuleComplete, on
     disposeThreeObject(arGroup);
 
     if (selectedModule === 'fire') {
-      // 1. Fire Safety 3D Scene - Multi-mesh Flame & Industrial DCP Extinguisher
+      // 1. Fire Safety 3D Scene
       if (passState.sweepProgress < 100) {
-        // Outer Flame Mesh
-        const outerGeo = new THREE.ConeGeometry(0.5, 1.05, 16);
-        const outerMat = new THREE.MeshStandardMaterial({
-          color: 0xdc2626,
-          emissive: 0xef4444,
-          emissiveIntensity: 0.9,
-          roughness: 0.2,
-          transparent: true,
-          opacity: 0.88
+        // Fire Flames geometry
+        const fireGeo = new THREE.ConeGeometry(0.45, 0.9, 16);
+        const fireMat = new THREE.MeshStandardMaterial({
+          color: 0xef4444,
+          emissive: 0xf59e0b,
+          emissiveIntensity: 0.8,
+          roughness: 0.3
         });
-        const outerMesh = new THREE.Mesh(outerGeo, outerMat);
-        outerMesh.position.set(-0.3, 0.1, -1.4);
-        arGroup.add(outerMesh);
-
-        // Inner Flame Core Mesh (Animated scale in render loop)
-        const coreGeo = new THREE.ConeGeometry(0.32, 0.78, 16);
-        const coreMat = new THREE.MeshStandardMaterial({
-          color: 0xf59e0b,
-          emissive: 0xfbbf24,
-          emissiveIntensity: 1.2,
-          roughness: 0.1
-        });
-        const coreMesh = new THREE.Mesh(coreGeo, coreMat);
-        coreMesh.name = "flameCore";
-        coreMesh.position.set(-0.3, 0.1, -1.4);
-        arGroup.add(coreMesh);
+        const fireMesh = new THREE.Mesh(fireGeo, fireMat);
+        fireMesh.position.set(-0.2, 0.1, -1.5);
+        arGroup.add(fireMesh);
       }
 
-      // Detailed Extinguisher Tank Assembly
-      const tankGeo = new THREE.CylinderGeometry(0.24, 0.24, 0.95, 32);
+      // Extinguisher Tank geometry
+      const tankGeo = new THREE.CylinderGeometry(0.22, 0.22, 0.85, 32);
       const tankMat = new THREE.MeshStandardMaterial({
         color: extinguisherType === 'dcp' ? 0xdc2626 : 0x0284c7,
-        metalness: 0.85,
-        roughness: 0.2
+        metalness: 0.75,
+        roughness: 0.25
       });
       const tankMesh = new THREE.Mesh(tankGeo, tankMat);
-      tankMesh.position.set(0.55, -0.15, -1.1);
+      tankMesh.position.set(0.5, -0.2, -1.2);
       arGroup.add(tankMesh);
 
-      // Chrome Valve Head
-      const headGeo = new THREE.CylinderGeometry(0.08, 0.08, 0.2, 16);
-      const headMat = new THREE.MeshStandardMaterial({ color: 0xe2e8f0, metalness: 0.95, roughness: 0.1 });
-      const headMesh = new THREE.Mesh(headGeo, headMat);
-      headMesh.position.set(0.55, 0.42, -1.1);
-      arGroup.add(headMesh);
-
-      // Pressure Gauge
-      const gaugeGeo = new THREE.CylinderGeometry(0.05, 0.05, 0.04, 16);
-      const gaugeMat = new THREE.MeshStandardMaterial({ color: 0x10b981, metalness: 0.6 });
-      const gaugeMesh = new THREE.Mesh(gaugeGeo, gaugeMat);
-      gaugeMesh.rotation.x = Math.PI / 2;
-      gaugeMesh.position.set(0.55, 0.44, -0.98);
-      arGroup.add(gaugeMesh);
-
-      // Squeeze Lever Handles
-      const leverGeo = new THREE.BoxGeometry(0.22, 0.03, 0.06);
-      const leverMat = new THREE.MeshStandardMaterial({ color: 0xdc2626, metalness: 0.5 });
-      const leverMesh = new THREE.Mesh(leverGeo, leverMat);
-      leverMesh.position.set(0.48, 0.48, -1.1);
-      arGroup.add(leverMesh);
-
-      // Yellow Safety Pull Pin Ring
-      const pinGeo = new THREE.TorusGeometry(0.04, 0.01, 8, 16);
-      const pinMat = new THREE.MeshBasicMaterial({ color: passState.pullPin ? 0x10b981 : 0xfacc15 });
-      const pinMesh = new THREE.Mesh(pinGeo, pinMat);
-      pinMesh.position.set(0.64, 0.46, -1.1);
-      arGroup.add(pinMesh);
-
-      // Flexible Hose & Conical Spray Nozzle
-      const hoseGeo = new THREE.CylinderGeometry(0.035, 0.035, 0.65, 16);
-      const hoseMat = new THREE.MeshStandardMaterial({ color: 0x0f172a, roughness: 0.9 });
+      // Extinguisher Hose
+      const hoseGeo = new THREE.CylinderGeometry(0.03, 0.03, 0.55, 16);
+      const hoseMat = new THREE.MeshStandardMaterial({ color: 0x0f172a, roughness: 0.8 });
       const hoseMesh = new THREE.Mesh(hoseGeo, hoseMat);
-      hoseMesh.rotation.z = Math.PI / 2.8;
-      hoseMesh.position.set(0.28, 0.22, -1.1);
+      hoseMesh.rotation.z = Math.PI / 3;
+      hoseMesh.position.set(0.25, 0.2, -1.2);
       arGroup.add(hoseMesh);
 
-      const nozzleGeo = new THREE.ConeGeometry(0.06, 0.22, 16);
-      const nozzleMat = new THREE.MeshStandardMaterial({ color: 0x0f172a, roughness: 0.8 });
-      const nozzleMesh = new THREE.Mesh(nozzleGeo, nozzleMat);
-      nozzleMesh.rotation.z = Math.PI / 2;
-      nozzleMesh.position.set(0.02, 0.34, -1.1);
-      arGroup.add(nozzleMesh);
-
-      // DCP Extinguisher Powder Spray Stream (Active during squeeze & sweep)
-      if (passState.squeezeTrigger || passState.sweepProgress > 0) {
-        const sprayCount = 180;
-        const sprayGeo = new THREE.BufferGeometry();
-        const sprayPos = new Float32Array(sprayCount * 3);
-        for (let i = 0; i < sprayCount * 3; i += 3) {
-          sprayPos[i] = 0.02 - Math.random() * 0.4;
-          sprayPos[i + 1] = 0.34 - Math.random() * 0.3;
-          sprayPos[i + 2] = -1.1 - (Math.random() - 0.5) * 0.3;
-        }
-        sprayGeo.setAttribute('position', new THREE.BufferAttribute(sprayPos, 3));
-        const sprayMat = new THREE.PointsMaterial({
-          size: 0.08,
-          color: 0xf8fafc,
-          transparent: true,
-          opacity: 0.85
-        });
-        const sprayPoints = new THREE.Points(sprayGeo, sprayMat);
-        sprayPoints.name = "extinguisherSpray";
-        arGroup.add(sprayPoints);
-      }
-
-      // Exit Arrows
+      // Floor AR Arrows for Exit Vector
       for (let i = 0; i < 3; i++) {
         const arrowGeo = new THREE.ConeGeometry(0.18, 0.45, 4);
         const arrowMat = new THREE.MeshBasicMaterial({ color: 0x10b981 });
         const arrowMesh = new THREE.Mesh(arrowGeo, arrowMat);
         arrowMesh.rotation.z = -Math.PI / 2;
-        arrowMesh.position.set(-1.1 + i * 0.7, -0.65, -1 - i * 0.2);
+        arrowMesh.position.set(-1.0 + i * 0.7, -0.6, -1 - i * 0.2);
         arGroup.add(arrowMesh);
       }
     } else if (selectedModule === 'gas') {
-      // 2. Gas & SCBA 3D Scene - Pipeline Assembly & Swirling Methane Cloud
-      const pipeGeo = new THREE.CylinderGeometry(0.12, 0.12, 3.2, 32);
-      const pipeMat = new THREE.MeshStandardMaterial({
-        color: 0xf59e0b,
-        metalness: 0.85,
-        roughness: 0.25
-      });
-      const pipeMesh = new THREE.Mesh(pipeGeo, pipeMat);
-      pipeMesh.rotation.z = Math.PI / 2;
-      pipeMesh.position.set(0, 0.2, -1.6);
-      arGroup.add(pipeMesh);
-
-      // Flanged Pipe Joints
-      [-1.1, 1.1].forEach(xPos => {
-        const flangeGeo = new THREE.CylinderGeometry(0.18, 0.18, 0.1, 32);
-        const flangeMat = new THREE.MeshStandardMaterial({ color: 0x475569, metalness: 0.9 });
-        const flangeMesh = new THREE.Mesh(flangeGeo, flangeMat);
-        flangeMesh.rotation.z = Math.PI / 2;
-        flangeMesh.position.set(xPos, 0.2, -1.6);
-        arGroup.add(flangeMesh);
-      });
-
-      // Red Shutoff Wheel Valve
-      const valveWheelGeo = new THREE.TorusGeometry(0.22, 0.03, 16, 32);
-      const valveWheelMat = new THREE.MeshStandardMaterial({
-        color: gasCutoffDone ? 0x10b981 : 0xdc2626,
-        metalness: 0.7,
-        roughness: 0.3
-      });
-      const valveWheelMesh = new THREE.Mesh(valveWheelGeo, valveWheelMat);
-      valveWheelMesh.name = "valveWheel";
-      valveWheelMesh.rotation.x = Math.PI / 2;
-      valveWheelMesh.position.set(0, 0.34, -1.6);
-      arGroup.add(valveWheelMesh);
-
-      // Brass Pressure Gauge Dial
-      const gaugeGeo = new THREE.CylinderGeometry(0.12, 0.12, 0.06, 24);
-      const gaugeMat = new THREE.MeshStandardMaterial({ color: gasCutoffDone ? 0x10b981 : 0xef4444, metalness: 0.7 });
-      const gaugeMesh = new THREE.Mesh(gaugeGeo, gaugeMat);
-      gaugeMesh.position.set(-0.6, 0.35, -1.6);
-      arGroup.add(gaugeMesh);
-
-      // Volumetric Methane Cloud Mesh
-      const gasCloudGeo = new THREE.SphereGeometry(0.9, 24, 24);
+      // 2. Gas & SCBA 3D Scene
+      // Toxic Gas Cloud Mesh
+      const gasCloudGeo = new THREE.SphereGeometry(0.85, 24, 24);
       const gasCloudMat = new THREE.MeshStandardMaterial({
         color: gasCutoffDone ? 0x10b981 : 0xeab308,
         emissive: gasCutoffDone ? 0x047857 : 0xa16207,
         transparent: true,
-        opacity: gasCutoffDone ? 0.08 : 0.6,
+        opacity: gasCutoffDone ? 0.12 : 0.65,
         wireframe: true
       });
       const gasCloudMesh = new THREE.Mesh(gasCloudGeo, gasCloudMat);
-      gasCloudMesh.name = "gasCloud";
-      gasCloudMesh.position.set(0, 0.4, -1.6);
+      gasCloudMesh.position.set(0, 0.4, -1.5);
       arGroup.add(gasCloudMesh);
 
-      // Tactical Equipment Box & SCBA Pack
-      const boxGeo = new THREE.BoxGeometry(0.85, 0.4, 0.55);
-      const boxMat = new THREE.MeshStandardMaterial({ color: 0x1e293b, roughness: 0.7 });
-      const boxMesh = new THREE.Mesh(boxGeo, boxMat);
-      boxMesh.position.set(-0.7, -0.4, -1.2);
-      arGroup.add(boxMesh);
-
-      // SCBA Cylinders
-      [-0.8, -0.6].forEach(xPos => {
-        const scbaGeo = new THREE.CylinderGeometry(0.11, 0.11, 0.75, 24);
-        const scbaMat = new THREE.MeshStandardMaterial({
-          color: scbaMaskEquipped ? 0x10b981 : 0x0284c7,
-          metalness: 0.85,
-          roughness: 0.15
-        });
-        const scbaMesh = new THREE.Mesh(scbaGeo, scbaMat);
-        scbaMesh.position.set(xPos, -0.1, -1.2);
-        arGroup.add(scbaMesh);
+      // SCBA Tank Mesh
+      const scbaGeo = new THREE.CylinderGeometry(0.16, 0.16, 0.8, 24);
+      const scbaMat = new THREE.MeshStandardMaterial({ 
+        color: scbaMaskEquipped ? 0x10b981 : 0x0284c7, 
+        metalness: 0.8 
       });
+      const scbaMesh = new THREE.Mesh(scbaGeo, scbaMat);
+      scbaMesh.position.set(-0.6, -0.1, -1.2);
+      arGroup.add(scbaMesh);
+
+      // Multi-Gas Detector Box
+      const detectorGeo = new THREE.BoxGeometry(0.25, 0.35, 0.12);
+      const detectorMat = new THREE.MeshStandardMaterial({ 
+        color: gasCalibrated ? 0x10b981 : 0xef4444, 
+        metalness: 0.5 
+      });
+      const detectorMesh = new THREE.Mesh(detectorGeo, detectorMat);
+      detectorMesh.position.set(0.6, -0.1, -1.2);
+      arGroup.add(detectorMesh);
     } else if (selectedModule === 'machinery') {
-      // 3. Machinery LOTO 3D Scene - Conveyor Assembly & 440V Lockout Panel
-      const rollerGeo = new THREE.CylinderGeometry(0.45, 0.45, 2.5, 32);
-      const rollerMat = new THREE.MeshStandardMaterial({
-        color: breakerIsolated ? 0x334155 : 0x0284c7,
-        metalness: 0.9,
-        roughness: 0.2
+      // 3. Heavy Machinery LOTO 3D Scene
+      // Conveyor Belt Roller Pulley
+      const beltGeo = new THREE.CylinderGeometry(0.45, 0.45, 2.4, 32);
+      const beltMat = new THREE.MeshStandardMaterial({ 
+        color: breakerIsolated ? 0x475569 : 0x0284c7, 
+        metalness: 0.8, 
+        roughness: 0.2 
       });
-      const rollerMesh = new THREE.Mesh(rollerGeo, rollerMat);
-      rollerMesh.name = "beltRoller";
-      rollerMesh.rotation.z = Math.PI / 2;
-      rollerMesh.position.set(0, -0.15, -1.5);
-      arGroup.add(rollerMesh);
+      const beltMesh = new THREE.Mesh(beltGeo, beltMat);
+      beltMesh.rotation.z = Math.PI / 2;
+      beltMesh.position.set(0, -0.1, -1.5);
+      arGroup.add(beltMesh);
 
-      // Conveyor Rubber Belt Frame
-      const frameGeo = new THREE.BoxGeometry(2.7, 0.12, 1.2);
-      const frameMat = new THREE.MeshStandardMaterial({ color: 0x0f172a, roughness: 0.9 });
-      const frameMesh = new THREE.Mesh(frameGeo, frameMat);
-      frameMesh.position.set(0, -0.38, -1.5);
-      arGroup.add(frameMesh);
-
-      // Electric Motor Housing with Cooling Fins
-      const motorGeo = new THREE.CylinderGeometry(0.35, 0.35, 0.7, 24);
-      const motorMat = new THREE.MeshStandardMaterial({
-        color: breakerIsolated ? 0x475569 : 0xdc2626,
-        emissive: breakerIsolated ? 0x000000 : 0x991b1b,
-        emissiveIntensity: 0.6,
-        metalness: 0.8
+      // LOTO Padlock Geometry
+      const lockGeo = new THREE.BoxGeometry(0.25, 0.32, 0.15);
+      const lockMat = new THREE.MeshStandardMaterial({ 
+        color: lotoApplied ? 0x10b981 : 0xef4444, 
+        metalness: 0.9 
       });
-      const motorMesh = new THREE.Mesh(motorGeo, motorMat);
-      motorMesh.position.set(1.1, -0.15, -1.5);
-      arGroup.add(motorMesh);
+      const lockMesh = new THREE.Mesh(lockGeo, lockMat);
+      lockMesh.position.set(0, 0.4, -1.3);
+      arGroup.add(lockMesh);
 
-      // 440V LOTO Electrical Switchboard Cabinet
-      const panelGeo = new THREE.BoxGeometry(0.55, 0.85, 0.35);
-      const panelMat = new THREE.MeshStandardMaterial({ color: 0x334155, metalness: 0.7 });
-      const panelMesh = new THREE.Mesh(panelGeo, panelMat);
-      panelMesh.position.set(-1.0, 0.3, -1.3);
-      arGroup.add(panelMesh);
-
-      // 3D Circuit Breaker Switch Lever
-      const leverGeo = new THREE.BoxGeometry(0.08, 0.22, 0.08);
-      const leverMat = new THREE.MeshStandardMaterial({
-        color: breakerIsolated ? 0x10b981 : 0xef4444,
-        emissive: breakerIsolated ? 0x047857 : 0xb91c1c
-      });
-      const leverMesh = new THREE.Mesh(leverGeo, leverMat);
-      leverMesh.position.set(-1.0, 0.35, -1.1);
-      arGroup.add(leverMesh);
-
-      // Red LOTO Safety Padlock
-      if (lotoApplied) {
-        const lockBodyGeo = new THREE.BoxGeometry(0.22, 0.28, 0.12);
-        const lockBodyMat = new THREE.MeshStandardMaterial({ color: 0xdc2626, metalness: 0.8 });
-        const lockBodyMesh = new THREE.Mesh(lockBodyGeo, lockBodyMat);
-        lockBodyMesh.position.set(-1.0, 0.12, -1.1);
-        arGroup.add(lockBodyMesh);
-
-        const shackleGeo = new THREE.TorusGeometry(0.08, 0.02, 12, 24, Math.PI);
-        const shackleMat = new THREE.MeshStandardMaterial({ color: 0xe2e8f0, metalness: 0.95 });
-        const shackleMesh = new THREE.Mesh(shackleGeo, shackleMat);
-        shackleMesh.rotation.z = Math.PI;
-        shackleMesh.position.set(-1.0, 0.26, -1.1);
-        arGroup.add(shackleMesh);
-      }
-
-      // Danger Zone Floor Wireframe Boundary Box
-      const boundGeo = new THREE.BoxGeometry(2.8, 1.2, 1.6);
-      const boundMat = new THREE.MeshBasicMaterial({
-        color: zeroEnergyVerified ? 0x10b981 : 0xef4444,
-        wireframe: true
+      // Danger Zone Boundary Box
+      const boundGeo = new THREE.BoxGeometry(2.6, 1.2, 1.5);
+      const boundMat = new THREE.MeshBasicMaterial({ 
+        color: boundaryIdentified ? 0x10b981 : 0xef4444, 
+        wireframe: true 
       });
       const boundMesh = new THREE.Mesh(boundGeo, boundMat);
-      boundMesh.position.set(0, -0.15, -1.5);
+      boundMesh.position.set(0, -0.1, -1.5);
       arGroup.add(boundMesh);
     }
 
@@ -788,6 +484,142 @@ export default function ARSimulatorContainer({ currentLang, onModuleComplete, on
     }
   };
 
+  // Dynamic Accurate Thermal Sensor Telemetry Calculator
+  const getThermalData = () => {
+    const baseNoise = Math.sin(Date.now() * 0.002) * 0.3;
+
+    if (selectedModule === 'fire') {
+      if (currentStep === 1 || currentStep === 2) {
+        const valC = 248.5 + baseNoise;
+        const tempC = valC.toFixed(1);
+        const tempF = ((valC * 9 / 5) + 32).toFixed(1);
+        return {
+          tempC,
+          tempF,
+          status: 'CRITICAL HOTSPOT',
+          description: 'ELECTRICAL CABLE FIRE ANOMALY',
+          level: 'critical',
+          color: 'text-red-400 border-red-500/80 bg-slate-950/90',
+          badge: 'CRITICAL'
+        };
+      } else if (currentStep === 3) {
+        const progress = passState.sweepProgress || 0;
+        const valC = Math.max(31.5, 220.0 - (progress / 100) * 188.5 + baseNoise);
+        const tempC = valC.toFixed(1);
+        const tempF = ((valC * 9 / 5) + 32).toFixed(1);
+        const isCool = valC < 45.0;
+        return {
+          tempC,
+          tempF,
+          status: isCool ? 'SAFE COOLING COMPLETE' : 'P.A.S.S. EXTINGUISHING IN PROGRESS',
+          description: isCool ? 'THERMAL ANOMALY NEUTRALIZED' : 'DCP FLAME HEAT DISSIPATING',
+          level: isCool ? 'normal' : 'warm',
+          color: isCool ? 'text-emerald-400 border-emerald-500/80 bg-slate-950/90' : 'text-amber-400 border-amber-500/80 bg-slate-950/90',
+          badge: isCool ? 'NORMAL' : 'COOLING'
+        };
+      } else {
+        const valC = 29.4 + baseNoise;
+        const tempC = valC.toFixed(1);
+        const tempF = ((valC * 9 / 5) + 32).toFixed(1);
+        return {
+          tempC,
+          tempF,
+          status: 'NORMAL AMBIENT TEMP',
+          description: 'FIRE HAZARD COOLED TO AMBIENT',
+          level: 'normal',
+          color: 'text-emerald-400 border-emerald-500/80 bg-slate-950/90',
+          badge: 'NORMAL'
+        };
+      }
+    }
+
+    if (selectedModule === 'gas') {
+      if (!gasCutoffDone && gasPpm > 1.25) {
+        const valC = 78.4 + baseNoise;
+        const tempC = valC.toFixed(1);
+        const tempF = ((valC * 9 / 5) + 32).toFixed(1);
+        return {
+          tempC,
+          tempF,
+          status: 'WARM ANOMALY',
+          description: 'CH4 LEAK FRICTION & VALVE HEAT',
+          level: 'warm',
+          color: 'text-amber-400 border-amber-500/80 bg-slate-950/90',
+          badge: 'HIGH GAS'
+        };
+      } else {
+        const valC = 28.8 + baseNoise;
+        const tempC = valC.toFixed(1);
+        const tempF = ((valC * 9 / 5) + 32).toFixed(1);
+        return {
+          tempC,
+          tempF,
+          status: 'NORMAL VENTILATION TEMP',
+          description: 'UNDERGROUND MINE AIRFLOW OPTIMAL',
+          level: 'normal',
+          color: 'text-emerald-400 border-emerald-500/80 bg-slate-950/90',
+          badge: 'NORMAL'
+        };
+      }
+    }
+
+    if (selectedModule === 'machinery') {
+      if (!breakerIsolated && !zeroEnergyVerified) {
+        const valC = 124.6 + baseNoise;
+        const tempC = valC.toFixed(1);
+        const tempF = ((valC * 9 / 5) + 32).toFixed(1);
+        return {
+          tempC,
+          tempF,
+          status: 'CRITICAL HOTSPOT',
+          description: 'ENERGIZED MOTOR BEARING OVERHEAT',
+          level: 'critical',
+          color: 'text-red-400 border-red-500/80 bg-slate-950/90',
+          badge: 'LOTO REQD'
+        };
+      } else if (breakerIsolated && !zeroEnergyVerified) {
+        const valC = 52.3 + baseNoise;
+        const tempC = valC.toFixed(1);
+        const tempF = ((valC * 9 / 5) + 32).toFixed(1);
+        return {
+          tempC,
+          tempF,
+          status: 'WARM ANOMALY',
+          description: 'ISOLATED - RESIDUAL MOTOR HEAT DISSIPATING',
+          level: 'warm',
+          color: 'text-amber-400 border-amber-500/80 bg-slate-950/90',
+          badge: 'COOLING'
+        };
+      } else {
+        const valC = 30.2 + baseNoise;
+        const tempC = valC.toFixed(1);
+        const tempF = ((valC * 9 / 5) + 32).toFixed(1);
+        return {
+          tempC,
+          tempF,
+          status: 'ZERO ENERGY SAFE',
+          description: 'MOTOR FULLY COOLED & DE-ENERGIZED',
+          level: 'normal',
+          color: 'text-emerald-400 border-emerald-500/80 bg-slate-950/90',
+          badge: 'SAFE'
+        };
+      }
+    }
+
+    const valC = 28.6 + baseNoise;
+    const tempC = valC.toFixed(1);
+    const tempF = ((valC * 9 / 5) + 32).toFixed(1);
+    return {
+      tempC,
+      tempF,
+      status: 'NORMAL AMBIENT TEMP',
+      description: 'MINE SHAFT STRATA AMBIENT TEMP',
+      level: 'normal',
+      color: 'text-emerald-400 border-emerald-500/80 bg-slate-950/90',
+      badge: 'NORMAL'
+    };
+  };
+
   return (
     <div className={`w-full border rounded-2xl shadow-xl overflow-hidden flex flex-col space-y-2 select-none ${
       highContrastMode ? 'bg-black text-yellow-300 border-yellow-400' : 'bg-slate-950 text-slate-100 border-slate-800'
@@ -837,7 +669,7 @@ export default function ARSimulatorContainer({ currentLang, onModuleComplete, on
           <button
             onClick={() => {
               setFilterMode('ar');
-              startCamera(cameraFacing);
+              if (!cameraActive) startCamera();
             }}
             className={`px-3 py-1.5 min-h-[38px] rounded-lg text-xs font-bold transition-all flex items-center space-x-1 ${
               filterMode === 'ar' ? 'bg-amber-500 text-slate-950 shadow' : 'text-slate-400 hover:text-slate-200'
@@ -848,10 +680,7 @@ export default function ARSimulatorContainer({ currentLang, onModuleComplete, on
           </button>
 
           <button
-            onClick={() => {
-              setFilterMode('thermal');
-              if (!cameraActive) startCamera(cameraFacing);
-            }}
+            onClick={() => setFilterMode('thermal')}
             className={`px-3 py-1.5 min-h-[38px] rounded-lg text-xs font-bold transition-all flex items-center space-x-1 ${
               filterMode === 'thermal' ? 'bg-red-600 text-white shadow ring-1 ring-red-400' : 'text-slate-400 hover:text-slate-200'
             }`}
@@ -869,108 +698,54 @@ export default function ARSimulatorContainer({ currentLang, onModuleComplete, on
             <Layers className="w-3.5 h-3.5" />
             <span>3D View</span>
           </button>
-
-          {/* Camera Flip Button */}
-          <button
-            onClick={toggleCameraFacing}
-            className="p-2 bg-slate-800 hover:bg-slate-700 text-amber-400 hover:text-amber-300 rounded-lg border border-slate-700 transition-all text-xs font-bold flex items-center space-x-1"
-            title={`Flip Camera (Current: ${cameraFacing === 'environment' ? 'Rear' : 'Front'})`}
-          >
-            <RefreshCw className="w-3.5 h-3.5" />
-            <span className="text-[10px] hidden sm:inline">{cameraFacing === 'environment' ? 'Rear' : 'Front'}</span>
-          </button>
         </div>
 
-      {/* High-Contrast Outdoor Sunlight Mode & Audio Toggle */}
-      <div className="flex items-center space-x-1.5">
-        <button
-          onClick={() => setHighContrastMode(!highContrastMode)}
-          className={`px-2.5 py-1.5 min-h-[38px] rounded-xl border text-xs font-bold transition-all flex items-center space-x-1 ${
-            highContrastMode 
-              ? 'bg-amber-400 text-slate-950 border-amber-300 shadow-lg shadow-amber-500/30' 
-              : 'bg-slate-900 text-slate-300 border-slate-800 hover:text-white hover:border-slate-700'
-          }`}
-          title="High-Contrast Outdoor Sunlight Mode for Open-Cast Coal Mines (DGMS Reg 153)"
-        >
-          <Sun className={`w-3.5 h-3.5 ${highContrastMode ? 'text-slate-950 font-black' : 'text-amber-400'}`} />
-          <span className="text-[10px] hidden sm:inline">{highContrastMode ? 'Sunlight ON' : 'Sunlight HD'}</span>
-        </button>
+        {/* High-Contrast Outdoor Mode & Audio Toggle */}
+        <div className="flex items-center space-x-1.5">
+          <button
+            onClick={() => setHighContrastMode(!highContrastMode)}
+            className={`p-2 min-h-[40px] rounded-xl border font-bold text-xs flex items-center justify-center ${
+              highContrastMode ? 'bg-yellow-400 text-black border-yellow-500' : 'bg-slate-900 text-slate-300 border-slate-800'
+            }`}
+            title="High-Contrast Outdoor Sunlight Mode"
+          >
+            <Sun className="w-4 h-4" />
+          </button>
 
-        <button
-          onClick={() => setAudioEnabled(!audioEnabled)}
-          className={`p-2 min-h-[38px] rounded-xl border text-xs font-semibold flex items-center justify-center ${
-            audioEnabled ? 'bg-emerald-950 text-emerald-400 border-emerald-500/40' : 'bg-slate-900 text-slate-400 border-slate-800'
-          }`}
-          title="Toggle Audio Voice Narration"
-        >
-          {audioEnabled ? <Volume2 className="w-4 h-4" /> : <VolumeX className="w-4 h-4" />}
-        </button>
+          <button
+            onClick={() => setAudioEnabled(!audioEnabled)}
+            className={`p-2 min-h-[40px] rounded-xl border text-xs font-semibold flex items-center justify-center ${
+              audioEnabled ? 'bg-emerald-950 text-emerald-400 border-emerald-500/40' : 'bg-slate-900 text-slate-400 border-slate-800'
+            }`}
+          >
+            {audioEnabled ? <Volume2 className="w-4 h-4" /> : <VolumeX className="w-4 h-4" />}
+          </button>
+        </div>
       </div>
-    </div>
 
-    {/* 3. AR Camera, Thermal & 3D Interactive Viewport */}
-    <div 
-      onMouseDown={handleMouseDown}
-      onMouseMove={handleMouseMove}
-      onMouseUp={handleMouseUp}
-      onTouchStart={handleTouchStart}
-      onTouchMove={handleTouchMove}
-      onTouchEnd={handleTouchEnd}
-      className={`relative w-full h-[360px] overflow-hidden flex items-center justify-center cursor-grab active:cursor-grabbing touch-none ${
-        highContrastMode ? 'bg-black ring-2 ring-amber-400/80 shadow-2xl' : 'bg-slate-950'
-      }`}
-    >
-      {/* Live Camera Feed */}
-      <video
-        ref={videoRef}
-        autoPlay
-        playsInline
-        muted
-        onLoadedMetadata={() => {
-          if (videoRef.current) {
-            videoRef.current.play().catch(() => {});
-          }
-        }}
-        style={{
-          filter: filterMode === 'thermal' 
-            ? 'invert(0.85) hue-rotate(190deg) saturate(3.5) contrast(1.8)' 
-            : highContrastMode 
-              ? 'contrast(2.2) brightness(1.3) saturate(2.2)' 
-              : 'none',
-          transform: cameraFacing === 'user' ? 'scaleX(-1)' : 'none'
-        }}
-        className={`absolute inset-0 w-full h-full object-cover transition-all ${
-          cameraActive && filterMode !== 'virtual' ? 'opacity-85' : 'hidden'
-        }`}
-      />
-
-        {/* Camera Offline / Permissions Retry Overlay */}
-        {!cameraActive && filterMode !== 'virtual' && (
-          <div className="absolute inset-0 bg-slate-950/95 z-20 flex flex-col items-center justify-center p-4 text-center space-y-3">
-            <Camera className="w-9 h-9 text-amber-400 animate-bounce" />
-            <div className="space-y-1">
-              <h4 className="text-xs font-bold text-white">AR Live Camera Stream Offline</h4>
-              <p className="text-[11px] text-slate-400 max-w-xs leading-relaxed">
-                {cameraError || 'Grant camera permission or flip camera mode to align spatial tracking.'}
-              </p>
-            </div>
-            <div className="flex items-center space-x-2">
-              <button
-                onClick={() => startCamera(cameraFacing)}
-                className="px-3.5 py-2 bg-gradient-to-r from-amber-500 to-amber-600 text-slate-950 font-extrabold text-xs rounded-xl shadow-lg flex items-center space-x-1.5 hover:brightness-110"
-              >
-                <RefreshCw className="w-3.5 h-3.5" />
-                <span>Retry AR Camera</span>
-              </button>
-              <button
-                onClick={toggleCameraFacing}
-                className="px-3.5 py-2 bg-slate-800 text-amber-400 border border-slate-700 font-bold text-xs rounded-xl flex items-center space-x-1 hover:bg-slate-700"
-              >
-                <span>Switch to {cameraFacing === 'environment' ? 'Front' : 'Rear'}</span>
-              </button>
-            </div>
-          </div>
-        )}
+      {/* 3. AR Camera, Thermal & 3D Interactive Viewport */}
+      <div 
+        onMouseDown={handleMouseDown}
+        onMouseMove={handleMouseMove}
+        onMouseUp={handleMouseUp}
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
+        className="relative w-full h-[360px] bg-slate-950 overflow-hidden flex items-center justify-center cursor-grab active:cursor-grabbing touch-none"
+      >
+        {/* Live Camera Feed */}
+        <video
+          ref={videoRef}
+          autoPlay
+          playsInline
+          muted
+          style={{
+            filter: filterMode === 'thermal' ? 'invert(0.85) hue-rotate(190deg) saturate(3.5) contrast(1.8)' : 'none'
+          }}
+          className={`absolute inset-0 w-full h-full object-cover transition-all ${
+            cameraActive && filterMode !== 'virtual' ? 'opacity-85' : 'hidden'
+          }`}
+        />
 
         {/* 3D Virtual Mine Background Grid */}
         {(!cameraActive || filterMode === 'virtual') && (
@@ -985,24 +760,12 @@ export default function ARSimulatorContainer({ currentLang, onModuleComplete, on
         <canvas 
           ref={canvasRef} 
           style={{
-            filter: filterMode === 'thermal' 
-              ? 'sepia(0.8) hue-rotate(140deg) saturate(3) contrast(1.5)' 
-              : highContrastMode 
-                ? 'contrast(1.6) brightness(1.2) saturate(1.8)' 
-                : 'none'
+            filter: filterMode === 'thermal' ? 'sepia(0.8) hue-rotate(140deg) saturate(3) contrast(1.5)' : 'none'
           }}
           className="absolute inset-0 w-full h-full pointer-events-none z-10" 
         />
 
-        {/* Sunlight HD Active Overlay Badge */}
-        {highContrastMode && (
-          <div className="absolute bottom-2 right-2 z-25 bg-amber-400 text-slate-950 px-2.5 py-1 rounded-full text-[10px] font-black shadow-lg flex items-center space-x-1 animate-pulse pointer-events-none">
-            <Sun className="w-3 h-3 text-slate-950" />
-            <span>☀️ OUTDOOR SUNLIGHT HD ACTIVE</span>
-          </div>
-        )}
-
-        {/* Dynamic HUD Overlay: Gas CH4 PPM & Environmental Telemetry */}
+        {/* Dynamic HUD Overlay: Gas CH4 PPM & Thermal Heatmap crosshair */}
         <div className="absolute top-3 left-3 z-20 flex items-center space-x-2 bg-slate-950/90 px-3 py-1.5 rounded-full border border-red-500/40 shadow-lg">
           <div className="w-2.5 h-2.5 rounded-full bg-red-500 animate-ping" />
           <span className="text-[11px] font-mono font-bold text-red-400">CH4: {gasPpm}% VOL</span>
@@ -1010,100 +773,44 @@ export default function ARSimulatorContainer({ currentLang, onModuleComplete, on
           <span className="text-[11px] font-mono font-bold text-amber-400">O2: 20.9%</span>
         </div>
 
-        {/* 3D Interactive Viewport Toolbar (Auto-Rotate & Center View Controls) */}
-        <div className="absolute top-3 right-3 z-20 flex items-center space-x-1.5 bg-slate-950/90 p-1.5 rounded-xl border border-slate-800 shadow-xl">
-          <button
-            onClick={() => setAutoRotate(!autoRotate)}
-            className={`px-2 py-1 rounded-lg text-[10px] font-bold flex items-center space-x-1 transition-all ${
-              autoRotate ? 'bg-amber-500 text-slate-950 shadow' : 'bg-slate-900 text-slate-300 hover:bg-slate-800'
-            }`}
-            title="Toggle 360° Auto Rotation"
-          >
-            <RotateCcw className={`w-3 h-3 ${autoRotate ? 'animate-spin' : ''}`} />
-            <span>360° Auto</span>
-          </button>
-
-          <button
-            onClick={resetView}
-            className="px-2 py-1 bg-slate-900 hover:bg-slate-800 text-amber-400 rounded-lg text-[10px] font-bold border border-slate-700/80 transition-all flex items-center space-x-1"
-            title="Reset Viewport Orbit Angle"
-          >
-            <RefreshCw className="w-3 h-3" />
-            <span>Center</span>
-          </button>
-        </div>
-
-        {/* 3D Spatial Interactive Target Badges (AR Annotations) */}
-        <div className="absolute inset-0 pointer-events-none z-15 flex items-center justify-between px-6">
-          {selectedModule === 'fire' && (
-            <>
-              <div className="bg-red-950/80 border border-red-500/60 px-2 py-1 rounded-lg text-[10px] font-mono text-red-300 shadow-lg animate-pulse">
-                🔥 {passState.sweepProgress >= 100 ? 'EXTINGUISHED' : 'CLASS B FUEL FIRE (318°C)'}
-              </div>
-              <div className="bg-amber-950/80 border border-amber-500/60 px-2 py-1 rounded-lg text-[10px] font-mono text-amber-300 shadow-lg">
-                🧯 {extinguisherType.toUpperCase()} EXTINGUISHER
-              </div>
-            </>
-          )}
-
-          {selectedModule === 'gas' && (
-            <>
-              <div className="bg-cyan-950/80 border border-cyan-500/60 px-2 py-1 rounded-lg text-[10px] font-mono text-cyan-300 shadow-lg">
-                🤿 TWIN SCBA PACK (200 BAR)
-              </div>
-              <div className="bg-amber-950/80 border border-amber-500/60 px-2 py-1 rounded-lg text-[10px] font-mono text-amber-300 shadow-lg">
-                ⚠️ CH4 HIGH-PRESSURE PIPE VALVE
-              </div>
-            </>
-          )}
-
-          {selectedModule === 'machinery' && (
-            <>
-              <div className="bg-blue-950/80 border border-blue-500/60 px-2 py-1 rounded-lg text-[10px] font-mono text-blue-300 shadow-lg">
-                ⚡ 440V MAIN LOTO PANEL
-              </div>
-              <div className="bg-red-950/80 border border-red-500/60 px-2 py-1 rounded-lg text-[10px] font-mono text-red-300 shadow-lg">
-                ⚙️ CONVEYOR MOTOR ({breakerIsolated ? 'ISOLATED' : '98.4°C OVERHEAT'})
-              </div>
-            </>
-          )}
-        </div>
-
-        {/* Thermal Heatmap Crosshair & FLIR Telemetry Overlay when Thermal View is active */}
+        {/* Thermal Heatmap Crosshair Overlay when Thermal View is active */}
         {filterMode === 'thermal' && (() => {
           const thermal = getThermalData();
           return (
-            <div className="absolute inset-0 pointer-events-none z-20 flex flex-col items-center justify-center p-2">
-              {/* FLIR Spectrum Side Scale Indicator */}
-              <div className="absolute right-3 top-12 bottom-12 w-3.5 rounded-full bg-gradient-to-t from-blue-700 via-yellow-500 to-red-600 border border-slate-700 shadow-xl flex flex-col justify-between items-center py-1">
-                <span className="text-[7px] font-mono text-white font-black bg-slate-950/90 px-0.5 rounded">HIGH</span>
-                <span className="text-[7px] font-mono text-white font-black bg-slate-950/90 px-0.5 rounded">LOW</span>
+            <div className="absolute inset-0 pointer-events-none z-20 flex flex-col items-center justify-center">
+              {/* Reticle Target */}
+              <div className={`w-28 h-28 border-2 rounded-full flex items-center justify-center animate-pulse transition-all ${
+                thermal.level === 'critical' ? 'border-red-500/90 shadow-[0_0_20px_rgba(239,68,68,0.6)]' :
+                thermal.level === 'warm' ? 'border-amber-500/90 shadow-[0_0_15px_rgba(245,158,11,0.5)]' :
+                'border-emerald-500/80 shadow-[0_0_12px_rgba(16,185,129,0.4)]'
+              }`}>
+                <div className={`w-3.5 h-3.5 rounded-full ${
+                  thermal.level === 'critical' ? 'bg-red-500 animate-ping' :
+                  thermal.level === 'warm' ? 'bg-amber-400 animate-ping' :
+                  'bg-emerald-400'
+                }`} />
               </div>
 
-              {/* Center Crosshair Target */}
-              <div className={`w-28 h-28 border-2 ${thermal.crosshairColor} rounded-full flex items-center justify-center relative transition-all`}>
-                <div className={`w-3 h-3 ${thermal.dotColor} rounded-full shadow-lg`} />
-                <div className="absolute top-0 w-0.5 h-3 bg-white/70" />
-                <div className="absolute bottom-0 w-0.5 h-3 bg-white/70" />
-                <div className="absolute left-0 h-0.5 w-3 bg-white/70" />
-                <div className="absolute right-0 h-0.5 w-3 bg-white/70" />
-              </div>
-
-              {/* Real-time Dynamic FLIR Thermal Readout Box */}
-              <div className={`mt-3 px-4 py-2 rounded-xl border-2 backdrop-blur-md shadow-2xl flex flex-col items-center space-y-1 transition-all ${thermal.badgeBg}`}>
+              {/* Thermal Dynamic Telemetry Card */}
+              <div className={`mt-3 px-4 py-2 rounded-2xl border backdrop-blur-md shadow-2xl flex flex-col items-center space-y-1 ${thermal.color}`}>
                 <div className="flex items-center space-x-2">
-                  <span className="text-[10px] font-mono font-black tracking-wider uppercase text-slate-300">THERMAL SPOT:</span>
-                  <span className="text-sm font-mono font-black text-white drop-shadow-md">{thermal.temp}°C</span>
+                  <Flame className={`w-4 h-4 ${
+                    thermal.level === 'critical' ? 'text-red-400 animate-bounce' :
+                    thermal.level === 'warm' ? 'text-amber-400' : 'text-emerald-400'
+                  }`} />
+                  <span className="text-sm font-mono font-black tracking-wider text-white">
+                    {thermal.tempC}°C <span className="text-xs text-slate-300 font-normal">({thermal.tempF}°F)</span>
+                  </span>
+                  <span className={`px-2 py-0.5 rounded-full text-[10px] font-mono font-extrabold uppercase border ${
+                    thermal.level === 'critical' ? 'bg-red-500/30 text-red-300 border-red-500/60' :
+                    thermal.level === 'warm' ? 'bg-amber-500/30 text-amber-300 border-amber-500/60' :
+                    'bg-emerald-500/30 text-emerald-300 border-emerald-500/60'
+                  }`}>
+                    {thermal.badge}
+                  </span>
                 </div>
-
-                <span className="text-[10px] font-bold tracking-tight text-center">{thermal.status}</span>
-
-                <div className="pt-1 border-t border-white/15 flex items-center space-x-2.5 text-[9px] font-mono opacity-90">
-                  <span>MAX: {thermal.maxSpot}°C</span>
-                  <span>|</span>
-                  <span>MIN: {thermal.minSpot}°C</span>
-                  <span>|</span>
-                  <span>ε: {thermal.emissivity}</span>
+                <div className="text-[10px] font-mono font-bold tracking-tight text-slate-200">
+                  {thermal.status} • {thermal.description}
                 </div>
               </div>
             </div>
@@ -1288,34 +995,18 @@ export default function ARSimulatorContainer({ currentLang, onModuleComplete, on
             <p className="text-xs text-slate-300 max-w-xs">
               Great job! You completed all practical safety protocols in compliance with DGMS rules.
             </p>
-            <div className="flex flex-wrap items-center justify-center gap-2.5 pt-2">
+            <div className="flex space-x-3 pt-2">
               <button
                 onClick={() => { setModuleFinished(false); setCurrentStep(1); }}
-                className="min-h-[44px] px-4 py-2 bg-slate-900 hover:bg-slate-800 text-slate-300 rounded-xl text-xs font-bold border border-slate-700 cursor-pointer"
+                className="min-h-[48px] px-4 py-2.5 bg-slate-900 text-slate-300 rounded-xl text-xs font-bold border border-slate-700"
               >
                 Re-drill Scenario
               </button>
               <button
-                onClick={() => {
-                  setModuleFinished(false);
-                  setCurrentStep(1);
-                  if (onNavigateToQuiz) onNavigateToQuiz();
-                }}
-                className="min-h-[44px] px-4 py-2 bg-slate-800 hover:bg-slate-700 text-amber-300 border border-amber-500/40 rounded-xl text-xs font-extrabold shadow-md flex items-center space-x-1 cursor-pointer"
+                onClick={advanceStep}
+                className="min-h-[48px] px-6 py-2.5 bg-amber-500 text-slate-950 rounded-xl text-xs font-extrabold shadow-lg"
               >
-                <span>Proceed to Quiz</span>
-                <ArrowRight className="w-3.5 h-3.5 text-amber-400" />
-              </button>
-              <button
-                onClick={() => {
-                  setModuleFinished(false);
-                  setCurrentStep(1);
-                  if (onClaimCertificate) onClaimCertificate(selectedModule, 95);
-                }}
-                className="min-h-[44px] px-5 py-2 bg-gradient-to-r from-amber-500 via-amber-400 to-amber-600 hover:brightness-110 text-slate-950 rounded-xl text-xs font-black shadow-lg shadow-amber-500/25 transition-all flex items-center space-x-1.5 cursor-pointer active:scale-95"
-              >
-                <Award className="w-4 h-4 text-slate-950" />
-                <span>📜 Claim Accredited Certificate</span>
+                Proceed to Quiz
               </button>
             </div>
           </div>
