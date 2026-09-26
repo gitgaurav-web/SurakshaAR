@@ -10,6 +10,9 @@ import SurakshaAssistant from './components/ai/SurakshaAssistant';
 import EquipmentExplorer from './components/explorer/EquipmentExplorer';
 import HazardSpotterGame from './components/game/HazardSpotterGame';
 import EmergencySosModal from './components/emergency/EmergencySosModal';
+import Mine3DMapExplorer from './components/telemetry/Mine3DMapExplorer';
+import PreShiftFatigueScanner from './components/scanner/PreShiftFatigueScanner';
+import GasPlumeSimulator from './components/gas/GasPlumeSimulator';
 import { TRANSLATIONS } from './locales/translations';
 import { saveWorkerEvaluation } from './utils/offlineStorage';
 
@@ -73,6 +76,18 @@ export default function App() {
           />
         )}
 
+        {activeTab === 'telemetry' && (
+          <Mine3DMapExplorer currentLang={currentLang} />
+        )}
+
+        {activeTab === 'scanner' && (
+          <PreShiftFatigueScanner currentLang={currentLang} />
+        )}
+
+        {activeTab === 'gas' && (
+          <GasPlumeSimulator currentLang={currentLang} />
+        )}
+
         {activeTab === 'game' && (
           <HazardSpotterGame
             currentLang={currentLang}
@@ -116,7 +131,7 @@ export default function App() {
         )}
 
         {/* Safety Fallback to prevent any blank screen */}
-        {!['ar', 'game', 'assistant', 'explorer', 'assessment', 'certificate', 'admin', 'guide'].includes(activeTab) && (
+        {!['ar', 'telemetry', 'scanner', 'gas', 'game', 'assistant', 'explorer', 'assessment', 'certificate', 'admin', 'guide'].includes(activeTab) && (
           <ARSimulatorContainer
             currentLang={currentLang}
             onModuleComplete={handleModuleComplete}

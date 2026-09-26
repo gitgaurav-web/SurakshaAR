@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ShieldCheck, Layers, HardHat, Award, BarChart3, HelpCircle, Bot, Box, ShieldAlert, Target, Wifi, WifiOff } from 'lucide-react';
+import { ShieldCheck, Layers, HardHat, Award, BarChart3, HelpCircle, Bot, Box, ShieldAlert, Target, Wifi, WifiOff, Activity, Wind, Eye } from 'lucide-react';
 import LanguageSelector from './LanguageSelector';
 import { TRANSLATIONS } from '../../locales/translations';
 
@@ -19,14 +19,17 @@ export default function Header({ currentLang, onSelectLang, activeTab, setActive
   }, []);
 
   const navItems = [
-    { id: 'ar', label: t.navArModules, icon: Layers },
+    { id: 'ar', label: t.navArModules || "AR Modules", icon: Layers },
+    { id: 'telemetry', label: "Mine 3D Shaft Map", icon: Activity },
+    { id: 'scanner', label: "Pre-Shift Scan", icon: Eye },
+    { id: 'gas', label: "Gas Plume AR", icon: Wind },
     { id: 'game', label: "Hazard Spotter", icon: Target },
     { id: 'assistant', label: "SurakshaMitra AI", icon: Bot },
     { id: 'explorer', label: "3D Gear Sandbox", icon: Box },
-    { id: 'assessment', label: t.navAssessment, icon: HardHat },
-    { id: 'certificate', label: t.navCertificates, icon: Award },
-    { id: 'admin', label: t.navAdmin, icon: BarChart3 },
-    { id: 'guide', label: t.navGuide, icon: HelpCircle },
+    { id: 'assessment', label: t.navAssessment || "Assessment", icon: HardHat },
+    { id: 'certificate', label: t.navCertificates || "Certificates", icon: Award },
+    { id: 'admin', label: t.navAdmin || "Admin Portal", icon: BarChart3 },
+    { id: 'guide', label: t.navGuide || "Guide", icon: HelpCircle },
   ];
 
   const handleSosClick = () => {
@@ -48,7 +51,7 @@ export default function Header({ currentLang, onSelectLang, activeTab, setActive
                   Suraksha<span className="text-amber-400">AR</span>
                 </span>
                 <span className="hidden md:inline-flex px-2 py-0.5 rounded-full bg-emerald-500/20 border border-emerald-500/40 text-[9px] font-mono font-bold text-emerald-400">
-                  DGMS v2.4
+                  DGMS v2.4 SIH
                 </span>
               </div>
               <span className="hidden sm:block text-[10px] text-slate-400 font-medium">
