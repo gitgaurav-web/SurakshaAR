@@ -33,7 +33,7 @@ function disposeThreeObject(obj) {
   }
 }
 
-export default function ARSimulatorContainer({ currentLang, onModuleComplete }) {
+export default function ARSimulatorContainer({ currentLang, onModuleComplete, onNavigateToQuiz }) {
   const t = TRANSLATIONS[currentLang] || TRANSLATIONS.en;
   
   const videoRef = useRef(null);
@@ -668,6 +668,17 @@ export default function ARSimulatorContainer({ currentLang, onModuleComplete }) 
     }
   };
 
+  // Explicit Proceed to Quiz Navigation Handler
+  const handleProceedToQuiz = () => {
+    setModuleFinished(false);
+    playAudioBeep('success');
+    if (onNavigateToQuiz) {
+      onNavigateToQuiz();
+    } else if (onModuleComplete) {
+      onModuleComplete(selectedModule, 95);
+    }
+  };
+
   // Dynamic Accurate Thermal Sensor Telemetry Calculator
   const getThermalData = () => {
     const baseNoise = Math.sin(Date.now() * 0.002) * 0.3;
@@ -1241,10 +1252,11 @@ export default function ARSimulatorContainer({ currentLang, onModuleComplete }) 
                 Re-drill Scenario
               </button>
               <button
-                onClick={advanceStep}
-                className="min-h-[48px] px-6 py-2.5 bg-amber-500 text-slate-950 rounded-xl text-xs font-extrabold shadow-lg"
+                onClick={handleProceedToQuiz}
+                className="min-h-[48px] px-6 py-2.5 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-black rounded-xl text-xs shadow-lg transition-all flex items-center space-x-1.5"
               >
-                Proceed to Quiz
+                <span>Proceed to DGMS Quiz</span>
+                <ChevronRight className="w-4 h-4" />
               </button>
             </div>
           </div>
@@ -1279,10 +1291,21 @@ export default function ARSimulatorContainer({ currentLang, onModuleComplete }) 
             <ChevronLeft className="w-5 h-5" />
           </button>
           <button
-            onClick={advanceStep}
-            className="min-h-[48px] px-4 py-2 bg-amber-500 hover:bg-amber-400 text-slate-950 font-extrabold text-xs rounded-xl flex items-center justify-center space-x-1 shadow-md transition-all"
+            onClick={() => {
+              const totalSteps = selectedModule === 'fire' ? 4 : selectedModule === 'gas' ? 4 : 2;
+              if (currentStep >= totalSteps || moduleFinished) {
+                handleProceedToQuiz();
+              } else {
+                advanceStep();
+              }
+            }}
+            className="min-h-[48px] px-4 py-2 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-black text-xs rounded-xl flex items-center justify-center space-x-1 shadow-md transition-all"
           >
-            <span>{t.nextStep}</span>
+            <span>
+              {(currentStep >= (selectedModule === 'fire' ? 4 : selectedModule === 'gas' ? 4 : 2) || moduleFinished)
+                ? 'Proceed to Quiz'
+                : t.nextStep}
+            </span>
             <ChevronRight className="w-4 h-4" />
           </button>
         </div>
