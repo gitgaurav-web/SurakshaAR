@@ -33,7 +33,7 @@ function disposeThreeObject(obj) {
   }
 }
 
-export default function ARSimulatorContainer({ currentLang, onModuleComplete, onNavigateToQuiz }) {
+export default function ARSimulatorContainer({ currentLang, onModuleComplete, onNavigateToQuiz, onNavigateToCertificate }) {
   const t = TRANSLATIONS[currentLang] || TRANSLATIONS.en;
   
   const videoRef = useRef(null);
@@ -1244,19 +1244,30 @@ export default function ARSimulatorContainer({ currentLang, onModuleComplete, on
             <p className="text-xs text-slate-300 max-w-xs">
               Great job! You completed all practical safety protocols in compliance with DGMS rules.
             </p>
-            <div className="flex space-x-3 pt-2">
+            <div className="flex flex-wrap items-center justify-center gap-2 pt-2">
               <button
                 onClick={() => { setModuleFinished(false); setCurrentStep(1); }}
-                className="min-h-[48px] px-4 py-2.5 bg-slate-900 text-slate-300 rounded-xl text-xs font-bold border border-slate-700"
+                className="min-h-[44px] px-3.5 py-2 bg-slate-900 hover:bg-slate-800 text-slate-300 rounded-xl text-xs font-bold border border-slate-700"
               >
                 Re-drill Scenario
               </button>
               <button
                 onClick={handleProceedToQuiz}
-                className="min-h-[48px] px-6 py-2.5 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-black rounded-xl text-xs shadow-lg transition-all flex items-center space-x-1.5"
+                className="min-h-[44px] px-4 py-2 bg-slate-800 hover:bg-slate-700 text-amber-300 border border-amber-500/40 font-bold rounded-xl text-xs shadow-md transition-all flex items-center space-x-1"
               >
-                <span>Proceed to DGMS Quiz</span>
+                <span>Proceed to Quiz</span>
                 <ChevronRight className="w-4 h-4" />
+              </button>
+              <button
+                onClick={() => {
+                  setModuleFinished(false);
+                  if (onModuleComplete) onModuleComplete(selectedModule, 95);
+                  if (onNavigateToCertificate) onNavigateToCertificate();
+                }}
+                className="min-h-[44px] px-4 py-2 bg-gradient-to-r from-amber-500 via-amber-400 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-black rounded-xl text-xs shadow-xl transition-all flex items-center space-x-1.5"
+              >
+                <Award className="w-4 h-4" />
+                <span>Claim Certificate</span>
               </button>
             </div>
           </div>

@@ -69,11 +69,15 @@ export default function App() {
             currentLang={currentLang}
             onModuleComplete={handleModuleComplete}
             onNavigateToQuiz={() => setActiveTab('assessment')}
+            onNavigateToCertificate={() => setActiveTab('certificate')}
           />
         )}
 
         {activeTab === 'game' && (
-          <HazardSpotterGame currentLang={currentLang} />
+          <HazardSpotterGame
+            currentLang={currentLang}
+            onNavigateToCertificate={() => setActiveTab('certificate')}
+          />
         )}
 
         {activeTab === 'assistant' && (
@@ -117,6 +121,7 @@ export default function App() {
             currentLang={currentLang}
             onModuleComplete={handleModuleComplete}
             onNavigateToQuiz={() => setActiveTab('assessment')}
+            onNavigateToCertificate={() => setActiveTab('certificate')}
           />
         )}
       </main>

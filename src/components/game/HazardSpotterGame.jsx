@@ -4,7 +4,7 @@ import { TRANSLATIONS } from '../../locales/translations';
 import { playAudioBeep, speakInstruction } from '../../utils/audioEngine';
 import confetti from 'canvas-confetti';
 
-export default function HazardSpotterGame({ currentLang }) {
+export default function HazardSpotterGame({ currentLang, onNavigateToCertificate }) {
   const t = TRANSLATIONS[currentLang] || TRANSLATIONS.en;
 
   const [score, setScore] = useState(0);
@@ -132,13 +132,24 @@ export default function HazardSpotterGame({ currentLang }) {
               <p className="text-xs text-slate-300">
                 You scored <strong className="text-amber-400 text-base">{score} / 100 PTS</strong> in mine hazard detection.
               </p>
-              <button
-                onClick={startGame}
-                className="px-6 py-3 bg-amber-500 text-slate-950 font-black rounded-2xl text-xs flex items-center space-x-2"
-              >
-                <RotateCcw className="w-4 h-4" />
-                <span>Play Again</span>
-              </button>
+              <div className="flex items-center space-x-3 pt-2">
+                <button
+                  onClick={startGame}
+                  className="px-4 py-2.5 bg-slate-900 text-slate-300 font-bold rounded-xl text-xs border border-slate-700 flex items-center space-x-1.5"
+                >
+                  <RotateCcw className="w-4 h-4" />
+                  <span>Play Again</span>
+                </button>
+                <button
+                  onClick={() => {
+                    if (onNavigateToCertificate) onNavigateToCertificate();
+                  }}
+                  className="px-5 py-2.5 bg-gradient-to-r from-amber-500 via-amber-400 to-amber-600 text-slate-950 font-black rounded-xl text-xs shadow-xl flex items-center space-x-1.5 hover:brightness-110"
+                >
+                  <Award className="w-4 h-4" />
+                  <span>Claim Safety Certificate</span>
+                </button>
+              </div>
             </div>
           )}
         </div>
