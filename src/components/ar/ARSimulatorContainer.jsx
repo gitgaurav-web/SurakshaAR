@@ -79,14 +79,25 @@ export default function ARSimulatorContainer({ currentLang, onModuleComplete }) 
 
   const [cameraFacing, setCameraFacing] = useState('environment');
   const [cameraError, setCameraError] = useState(false);
+  const [isCameraLoading, setIsCameraLoading] = useState(false);
 
-  // Start Camera Function with Constraint Fallbacks & Webview Compatibility
+  // Start Camera Function with Capacitor Native Permissions & Webview Compatibility
   const startCamera = async (facing = cameraFacing) => {
     setCameraError(false);
+    setIsCameraLoading(true);
     try {
       if (videoRef.current && videoRef.current.srcObject) {
         const tracks = videoRef.current.srcObject.getTracks();
         tracks.forEach(track => track.stop());
+      }
+
+      // Check Capacitor Native Camera Permissions if running on mobile device
+      if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.Camera) {
+        try {
+          await window.Capacitor.Plugins.Camera.requestPermissions();
+        } catch (capErr) {
+          console.warn('Capacitor native camera permission request:', capErr);
+        }
       }
 
       let stream;
@@ -115,6 +126,8 @@ export default function ARSimulatorContainer({ currentLang, onModuleComplete }) 
       console.warn('Camera stream unavailable, switching to 3D Virtual mode.', err);
       setCameraActive(false);
       setCameraError(true);
+    } finally {
+      setIsCameraLoading(false);
     }
   };
 
@@ -779,7 +792,7 @@ export default function ARSimulatorContainer({ currentLang, onModuleComplete }) 
         onTouchEnd={handleTouchEnd}
         className="relative w-full h-[360px] bg-slate-950 overflow-hidden flex items-center justify-center cursor-grab active:cursor-grabbing touch-none"
       >
-        {/* Live Camera Feed */}
+        {/* Live Camera Feed (Always rendered in DOM for WebRTC binding; toggle opacity instead of display:none) */}
         <video
           ref={videoRef}
           autoPlay
@@ -789,35 +802,49 @@ export default function ARSimulatorContainer({ currentLang, onModuleComplete }) 
             filter: filterMode === 'thermal' ? 'invert(0.85) hue-rotate(190deg) saturate(3.5) contrast(1.8)' : 'none'
           }}
           className={`absolute inset-0 w-full h-full object-cover transition-all ${
-            cameraActive && filterMode !== 'virtual' ? 'opacity-100' : 'hidden'
+            cameraActive && filterMode !== 'virtual' ? 'opacity-100 z-0' : 'opacity-0 pointer-events-none -z-10'
           }`}
         />
 
-        {/* Camera Permission / Retry Bar when in AR mode but camera is inactive */}
-        {filterMode === 'ar' && (!cameraActive || cameraError) && (
+        {/* Camera Permission / Loading / Standby Overlay */}
+        {filterMode === 'ar' && (!cameraActive || cameraError || isCameraLoading) && (
           <div className="absolute inset-0 bg-slate-950/90 backdrop-blur-sm z-30 flex flex-col items-center justify-center p-4 text-center space-y-3">
-            <Camera className="w-10 h-10 text-amber-400 animate-pulse" />
-            <div className="space-y-1">
-              <h4 className="text-sm font-bold text-white">AR Live Camera Off or Blocked</h4>
-              <p className="text-xs text-slate-400 max-w-xs">
-                Tap below to grant camera permissions or switch camera view for real-world AR inspection.
-              </p>
-            </div>
-            <div className="flex items-center space-x-2">
-              <button
-                onClick={() => startCamera('environment')}
-                className="px-4 py-2 bg-gradient-to-r from-amber-500 to-amber-600 text-slate-950 font-black rounded-xl text-xs shadow-lg flex items-center space-x-1.5"
-              >
-                <Camera className="w-4 h-4" />
-                <span>Enable AR Camera</span>
-              </button>
-              <button
-                onClick={() => setFilterMode('virtual')}
-                className="px-3 py-2 bg-slate-800 text-slate-300 hover:text-white rounded-xl text-xs font-semibold border border-slate-700"
-              >
-                Use 3D Mode
-              </button>
-            </div>
+            {isCameraLoading ? (
+              <>
+                <RefreshCw className="w-10 h-10 text-amber-400 animate-spin" />
+                <div className="space-y-1">
+                  <h4 className="text-sm font-bold text-white">Accessing AR Camera Hardware...</h4>
+                  <p className="text-xs text-slate-400 max-w-xs">
+                    Initializing real-time video feed. Please allow camera permissions if requested by your device.
+                  </p>
+                </div>
+              </>
+            ) : (
+              <>
+                <Camera className="w-10 h-10 text-amber-400 animate-pulse" />
+                <div className="space-y-1">
+                  <h4 className="text-sm font-bold text-white">AR Live Camera Standby</h4>
+                  <p className="text-xs text-slate-400 max-w-xs">
+                    Tap below to grant camera access for live real-world safety overlay inspection, or switch to 3D mode.
+                  </p>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <button
+                    onClick={() => startCamera('environment')}
+                    className="px-4 py-2 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-black rounded-xl text-xs shadow-lg flex items-center space-x-1.5 transition-all"
+                  >
+                    <Camera className="w-4 h-4" />
+                    <span>Enable AR Camera</span>
+                  </button>
+                  <button
+                    onClick={() => setFilterMode('virtual')}
+                    className="px-3 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white rounded-xl text-xs font-semibold border border-slate-700"
+                  >
+                    Use 3D Mode
+                  </button>
+                </div>
+              </>
+            )}
           </div>
         )}
 
