@@ -15,7 +15,7 @@ import PreShiftFatigueScanner from './components/scanner/PreShiftFatigueScanner'
 import GasPlumeSimulator from './components/gas/GasPlumeSimulator';
 import { TRANSLATIONS } from './locales/translations';
 import { saveWorkerEvaluation } from './utils/offlineStorage';
-import { UserCheck, ShieldCheck, MapPin, Sparkles, RefreshCw } from 'lucide-react';
+import { UserCheck, Award, MapPin, Sparkles, RefreshCw } from 'lucide-react';
 
 const PRESET_WORKERS = [
   {
@@ -112,7 +112,7 @@ export default function App() {
             {/* Profile Switcher Trigger Button */}
             <button
               onClick={cycleWorkerProfile}
-              className="ml-2 px-2 py-0.5 rounded bg-slate-800 hover:bg-slate-700 text-amber-300 border border-amber-500/30 text-[10px] flex items-center space-x-1 font-bold transition active:scale-95"
+              className="ml-2 px-2 py-0.5 rounded bg-slate-800 hover:bg-slate-700 text-amber-300 border border-amber-500/30 text-[10px] flex items-center space-x-1 font-bold transition active:scale-95 cursor-pointer"
               title="Switch Test Worker Profile"
             >
               <RefreshCw className="w-3 h-3 text-amber-400" />
@@ -126,9 +126,10 @@ export default function App() {
               <span>{activeWorker.mineSector}</span>
             </span>
 
-            <span className="flex items-center space-x-1 px-2 py-0.5 bg-emerald-950/80 border border-emerald-500/40 text-emerald-400 rounded-md font-bold">
-              <ShieldCheck className="w-3 h-3 text-emerald-400" />
-              <span>DGMS CERTIFIED ({activeWorker.score}%)</span>
+            {/* DGMS TRAINING SCORE Badge (Replaced DGMS CERTIFIED as requested by user) */}
+            <span className="flex items-center space-x-1.5 px-3 py-1 bg-gradient-to-r from-emerald-950 via-slate-900 to-emerald-950 border border-emerald-500/60 text-emerald-400 rounded-lg font-bold shadow-[0_0_12px_rgba(16,185,129,0.3)]">
+              <Award className="w-3.5 h-3.5 text-emerald-400 animate-pulse" />
+              <span>DGMS TRAINING SCORE: <strong className="text-amber-400 font-black text-xs">{activeWorker.score}%</strong></span>
             </span>
           </div>
         </div>
