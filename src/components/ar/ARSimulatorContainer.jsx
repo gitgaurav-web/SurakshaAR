@@ -332,116 +332,253 @@ export default function ARSimulatorContainer({ currentLang, onModuleComplete }) 
     // Memory Disposal of previous 3D meshes
     disposeThreeObject(arGroup);
 
+    // ----------------------------------------------------
+    // AAA HIGH-FIDELITY 3D MINE ENVIRONMENT & EQUIPMENT
+    // ----------------------------------------------------
+    
+    // 1. Underground Mine Shaft Arch Tunnel Structure
+    const tunnelGeo = new THREE.CylinderGeometry(2.4, 2.4, 6.0, 16, 1, true, 0, Math.PI);
+    const tunnelMat = new THREE.MeshStandardMaterial({
+      color: 0x0f172a,
+      roughness: 0.95,
+      metalness: 0.1,
+      side: THREE.BackSide
+    });
+    const tunnelMesh = new THREE.Mesh(tunnelGeo, tunnelMat);
+    tunnelMesh.rotation.x = Math.PI / 2;
+    tunnelMesh.position.set(0, 0.8, -2.5);
+    arGroup.add(tunnelMesh);
+
+    // 2. Mine Shaft Pit Floor & Steel Rails
+    const floorGeo = new THREE.PlaneGeometry(4.8, 6.0);
+    const floorMat = new THREE.MeshStandardMaterial({
+      color: 0x020617,
+      roughness: 0.9
+    });
+    const floorMesh = new THREE.Mesh(floorGeo, floorMat);
+    floorMesh.rotation.x = -Math.PI / 2;
+    floorMesh.position.set(0, -0.65, -2.5);
+    arGroup.add(floorMesh);
+
+    // Parallel Steel Mine Track Rails
+    [-0.55, 0.55].forEach(x => {
+      const railGeo = new THREE.BoxGeometry(0.08, 0.08, 5.5);
+      const railMat = new THREE.MeshStandardMaterial({ color: 0x475569, metalness: 0.9, roughness: 0.2 });
+      const railMesh = new THREE.Mesh(railGeo, railMat);
+      railMesh.position.set(x, -0.61, -2.5);
+      arGroup.add(railMesh);
+    });
+
+    // 3. AR Green Floor Evacuation Arrows
+    for (let i = 0; i < 4; i++) {
+      const arrowGeo = new THREE.ConeGeometry(0.14, 0.38, 4);
+      const arrowMat = new THREE.MeshBasicMaterial({ color: 0x10b981 });
+      const arrowMesh = new THREE.Mesh(arrowGeo, arrowMat);
+      arrowMesh.rotation.x = -Math.PI / 2;
+      arrowMesh.position.set(-1.1 + i * 0.7, -0.63, -1.0 - i * 0.4);
+      arGroup.add(arrowMesh);
+    }
+
+    // ----------------------------------------------------
+    // MODULE-SPECIFIC HIGH-DETAIL 3D MODELS
+    // ----------------------------------------------------
     if (selectedModule === 'fire') {
-      // 1. Fire Safety 3D Scene
+      // --- MODULE 1: FIRE SAFETY 3D SCENE ---
+
+      // Overheated Electrical Junction Box Hazard Base
+      const jboxGeo = new THREE.BoxGeometry(0.7, 0.8, 0.4);
+      const jboxMat = new THREE.MeshStandardMaterial({ color: 0x334155, metalness: 0.8, roughness: 0.3 });
+      const jboxMesh = new THREE.Mesh(jboxGeo, jboxMat);
+      jboxMesh.position.set(-0.3, 0.0, -1.6);
+      arGroup.add(jboxMesh);
+
+      // Yellow High Voltage Warning Decal Plate
+      const decalGeo = new THREE.PlaneGeometry(0.25, 0.25);
+      const decalMat = new THREE.MeshBasicMaterial({ color: 0xf59e0b });
+      const decalMesh = new THREE.Mesh(decalGeo, decalMat);
+      decalMesh.position.set(-0.3, 0.15, -1.39);
+      arGroup.add(decalMesh);
+
+      // Active Volumetric Flame Mesh & Ember Particles
       if (passState.sweepProgress < 100) {
-        // Fire Flames geometry
-        const fireGeo = new THREE.ConeGeometry(0.45, 0.9, 16);
+        const flameScale = Math.max(0.15, 1.0 - (passState.sweepProgress / 100));
+        
+        // Primary Outer Flame Cone
+        const fireGeo = new THREE.ConeGeometry(0.4 * flameScale, 0.95 * flameScale, 16);
         const fireMat = new THREE.MeshStandardMaterial({
           color: 0xef4444,
           emissive: 0xf59e0b,
-          emissiveIntensity: 0.8,
-          roughness: 0.3
+          emissiveIntensity: 1.2,
+          roughness: 0.1
         });
         const fireMesh = new THREE.Mesh(fireGeo, fireMat);
-        fireMesh.position.set(-0.2, 0.1, -1.5);
+        fireMesh.position.set(-0.3, 0.45 * flameScale, -1.5);
         arGroup.add(fireMesh);
+
+        // Core Inner Flame Core
+        const coreGeo = new THREE.ConeGeometry(0.2 * flameScale, 0.6 * flameScale, 12);
+        const coreMat = new THREE.MeshBasicMaterial({ color: 0xfef08a });
+        const coreMesh = new THREE.Mesh(coreGeo, coreMat);
+        coreMesh.position.set(-0.3, 0.4 * flameScale, -1.48);
+        arGroup.add(coreMesh);
       }
 
-      // Extinguisher Tank geometry
+      // High-Detail Industrial Extinguisher Model
+      const tankColor = extinguisherType === 'dcp' ? 0xdc2626 : 0x0284c7;
+      
+      // Main Cylinder Body
       const tankGeo = new THREE.CylinderGeometry(0.22, 0.22, 0.85, 32);
-      const tankMat = new THREE.MeshStandardMaterial({
-        color: extinguisherType === 'dcp' ? 0xdc2626 : 0x0284c7,
-        metalness: 0.75,
-        roughness: 0.25
-      });
+      const tankMat = new THREE.MeshStandardMaterial({ color: tankColor, metalness: 0.85, roughness: 0.2 });
       const tankMesh = new THREE.Mesh(tankGeo, tankMat);
-      tankMesh.position.set(0.5, -0.2, -1.2);
+      tankMesh.position.set(0.65, -0.15, -1.2);
       arGroup.add(tankMesh);
 
-      // Extinguisher Hose
-      const hoseGeo = new THREE.CylinderGeometry(0.03, 0.03, 0.55, 16);
+      // Chrome Valve Collar
+      const collarGeo = new THREE.CylinderGeometry(0.1, 0.14, 0.15, 24);
+      const collarMat = new THREE.MeshStandardMaterial({ color: 0xe2e8f0, metalness: 0.95, roughness: 0.1 });
+      const collarMesh = new THREE.Mesh(collarGeo, collarMat);
+      collarMesh.position.set(0.65, 0.35, -1.2);
+      arGroup.add(collarMesh);
+
+      // Yellow Safety Pull-Pin Ring
+      const ringGeo = new THREE.TorusGeometry(0.06, 0.015, 12, 24);
+      const ringMat = new THREE.MeshStandardMaterial({ color: passState.pullPin ? 0x10b981 : 0xfacc15, metalness: 0.6 });
+      const ringMesh = new THREE.Mesh(ringGeo, ringMat);
+      ringMesh.position.set(0.76, 0.38, -1.18);
+      arGroup.add(ringMesh);
+
+      // Rubber Hose & Discharge Nozzle
+      const hoseGeo = new THREE.CylinderGeometry(0.025, 0.04, 0.65, 16);
       const hoseMat = new THREE.MeshStandardMaterial({ color: 0x0f172a, roughness: 0.8 });
       const hoseMesh = new THREE.Mesh(hoseGeo, hoseMat);
-      hoseMesh.rotation.z = Math.PI / 3;
-      hoseMesh.position.set(0.25, 0.2, -1.2);
+      hoseMesh.rotation.z = passState.aimBase ? Math.PI / 4 : Math.PI / 6;
+      hoseMesh.position.set(0.42, 0.25, -1.2);
       arGroup.add(hoseMesh);
 
-      // Floor AR Arrows for Exit Vector
-      for (let i = 0; i < 3; i++) {
-        const arrowGeo = new THREE.ConeGeometry(0.18, 0.45, 4);
-        const arrowMat = new THREE.MeshBasicMaterial({ color: 0x10b981 });
-        const arrowMesh = new THREE.Mesh(arrowGeo, arrowMat);
-        arrowMesh.rotation.z = -Math.PI / 2;
-        arrowMesh.position.set(-1.0 + i * 0.7, -0.6, -1 - i * 0.2);
-        arGroup.add(arrowMesh);
+      // DCP Chemical Powder Discharge Spray Particles
+      if (passState.sweepProgress > 0 && passState.sweepProgress < 100) {
+        const sprayCount = 80;
+        const sprayGeo = new THREE.BufferGeometry();
+        const sprayPos = new Float32Array(sprayCount * 3);
+        for (let i = 0; i < sprayCount * 3; i += 3) {
+          sprayPos[i] = 0.35 - Math.random() * 0.6;
+          sprayPos[i + 1] = 0.1 + (Math.random() - 0.5) * 0.3;
+          sprayPos[i + 2] = -1.2 - Math.random() * 0.4;
+        }
+        sprayGeo.setAttribute('position', new THREE.BufferAttribute(sprayPos, 3));
+        const sprayMat = new THREE.PointsMaterial({ color: 0xf8fafc, size: 0.08, transparent: true, opacity: 0.85 });
+        const sprayParticles = new THREE.Points(sprayGeo, sprayMat);
+        arGroup.add(sprayParticles);
       }
+
     } else if (selectedModule === 'gas') {
-      // 2. Gas & SCBA 3D Scene
-      // Toxic Gas Cloud Mesh
-      const gasCloudGeo = new THREE.SphereGeometry(0.85, 24, 24);
-      const gasCloudMat = new THREE.MeshStandardMaterial({
-        color: gasCutoffDone ? 0x10b981 : 0xeab308,
-        emissive: gasCutoffDone ? 0x047857 : 0xa16207,
+      // --- MODULE 2: GAS LEAK & SCBA 3D SCENE ---
+
+      // Underground Steel Gas Main Pipeline
+      const pipeGeo = new THREE.CylinderGeometry(0.18, 0.18, 2.2, 24);
+      const pipeMat = new THREE.MeshStandardMaterial({ color: 0x475569, metalness: 0.85, roughness: 0.3 });
+      const pipeMesh = new THREE.Mesh(pipeGeo, pipeMat);
+      pipeMesh.rotation.z = Math.PI / 2;
+      pipeMesh.position.set(0, 0.1, -1.6);
+      arGroup.add(pipeMesh);
+
+      // Emergency Cutoff Valve Wheel (Rotatable Brass Wheel)
+      const valveWheelGeo = new THREE.TorusGeometry(0.24, 0.04, 12, 24);
+      const valveWheelMat = new THREE.MeshStandardMaterial({
+        color: gasCutoffDone ? 0x10b981 : 0xd97706,
+        metalness: 0.9,
+        roughness: 0.2
+      });
+      const valveWheelMesh = new THREE.Mesh(valveWheelGeo, valveWheelMat);
+      valveWheelMesh.rotation.x = Math.PI / 2;
+      valveWheelMesh.position.set(0, 0.32, -1.6);
+      arGroup.add(valveWheelMesh);
+
+      // Swirling Methane Toxic Gas Cloud (Volumetric Mesh + Particle Swirl)
+      const cloudColor = gasCutoffDone ? 0x10b981 : 0xeab308;
+      const cloudOpacity = gasCutoffDone ? 0.08 : 0.55;
+
+      const cloudGeo = new THREE.SphereGeometry(0.85, 24, 24);
+      const cloudMat = new THREE.MeshStandardMaterial({
+        color: cloudColor,
+        emissive: gasCutoffDone ? 0x047857 : 0x854d0e,
         transparent: true,
-        opacity: gasCutoffDone ? 0.12 : 0.65,
+        opacity: cloudOpacity,
         wireframe: true
       });
-      const gasCloudMesh = new THREE.Mesh(gasCloudGeo, gasCloudMat);
-      gasCloudMesh.position.set(0, 0.4, -1.5);
-      arGroup.add(gasCloudMesh);
+      const cloudMesh = new THREE.Mesh(cloudGeo, cloudMat);
+      cloudMesh.position.set(0, 0.3, -1.5);
+      arGroup.add(cloudMesh);
 
-      // SCBA Tank Mesh
-      const scbaGeo = new THREE.CylinderGeometry(0.16, 0.16, 0.8, 24);
-      const scbaMat = new THREE.MeshStandardMaterial({ 
-        color: scbaMaskEquipped ? 0x10b981 : 0x0284c7, 
-        metalness: 0.8 
+      // Twin SCBA Compressed Air Cylinder Pack
+      [-0.65, -0.42].forEach(x => {
+        const scbaGeo = new THREE.CylinderGeometry(0.14, 0.14, 0.8, 24);
+        const scbaMat = new THREE.MeshStandardMaterial({
+          color: scbaMaskEquipped ? 0x10b981 : 0x0284c7,
+          metalness: 0.9,
+          roughness: 0.2
+        });
+        const scbaMesh = new THREE.Mesh(scbaGeo, scbaMat);
+        scbaMesh.position.set(x, -0.1, -1.3);
+        arGroup.add(scbaMesh);
       });
-      const scbaMesh = new THREE.Mesh(scbaGeo, scbaMat);
-      scbaMesh.position.set(-0.6, -0.1, -1.2);
-      arGroup.add(scbaMesh);
 
-      // Multi-Gas Detector Box
-      const detectorGeo = new THREE.BoxGeometry(0.25, 0.35, 0.12);
-      const detectorMat = new THREE.MeshStandardMaterial({ 
-        color: gasCalibrated ? 0x10b981 : 0xef4444, 
-        metalness: 0.5 
-      });
+      // Handheld Multi-Gas Detector Scanner Box
+      const detectorGeo = new THREE.BoxGeometry(0.26, 0.38, 0.12);
+      const detectorMat = new THREE.MeshStandardMaterial({ color: gasCalibrated ? 0x10b981 : 0xef4444, metalness: 0.6 });
       const detectorMesh = new THREE.Mesh(detectorGeo, detectorMat);
-      detectorMesh.position.set(0.6, -0.1, -1.2);
+      detectorMesh.position.set(0.65, -0.1, -1.2);
       arGroup.add(detectorMesh);
-    } else if (selectedModule === 'machinery') {
-      // 3. Heavy Machinery LOTO 3D Scene
-      // Conveyor Belt Roller Pulley
-      const beltGeo = new THREE.CylinderGeometry(0.45, 0.45, 2.4, 32);
-      const beltMat = new THREE.MeshStandardMaterial({ 
-        color: breakerIsolated ? 0x475569 : 0x0284c7, 
-        metalness: 0.8, 
-        roughness: 0.2 
-      });
-      const beltMesh = new THREE.Mesh(beltGeo, beltMat);
-      beltMesh.rotation.z = Math.PI / 2;
-      beltMesh.position.set(0, -0.1, -1.5);
-      arGroup.add(beltMesh);
 
-      // LOTO Padlock Geometry
-      const lockGeo = new THREE.BoxGeometry(0.25, 0.32, 0.15);
-      const lockMat = new THREE.MeshStandardMaterial({ 
-        color: lotoApplied ? 0x10b981 : 0xef4444, 
-        metalness: 0.9 
+    } else if (selectedModule === 'machinery') {
+      // --- MODULE 3: HEAVY MACHINERY LOTO 3D SCENE ---
+
+      // Motorized Conveyor Belt Drive Assembly
+      // Main Belt Drum
+      const drumGeo = new THREE.CylinderGeometry(0.48, 0.48, 2.4, 32);
+      const drumMat = new THREE.MeshStandardMaterial({
+        color: breakerIsolated ? 0x334155 : 0x0284c7,
+        metalness: 0.9,
+        roughness: 0.2
+      });
+      const drumMesh = new THREE.Mesh(drumGeo, drumMat);
+      drumMesh.rotation.z = Math.PI / 2;
+      drumMesh.position.set(0, -0.1, -1.6);
+      arGroup.add(drumMesh);
+
+      // Heavy Electric Motor Housing
+      const motorGeo = new THREE.CylinderGeometry(0.38, 0.38, 0.9, 24);
+      const motorMat = new THREE.MeshStandardMaterial({ color: 0x1e293b, metalness: 0.85, roughness: 0.3 });
+      const motorMesh = new THREE.Mesh(motorGeo, motorMat);
+      motorMesh.position.set(1.15, -0.1, -1.6);
+      arGroup.add(motorMesh);
+
+      // Red Anodized LOTO Safety Padlock & Hasp
+      const lockGeo = new THREE.BoxGeometry(0.24, 0.32, 0.14);
+      const lockMat = new THREE.MeshStandardMaterial({
+        color: lotoApplied ? 0x10b981 : 0xdc2626,
+        metalness: 0.95,
+        roughness: 0.15
       });
       const lockMesh = new THREE.Mesh(lockGeo, lockMat);
-      lockMesh.position.set(0, 0.4, -1.3);
+      lockMesh.position.set(0, 0.42, -1.3);
       arGroup.add(lockMesh);
 
-      // Danger Zone Boundary Box
-      const boundGeo = new THREE.BoxGeometry(2.6, 1.2, 1.5);
-      const boundMat = new THREE.MeshBasicMaterial({ 
-        color: boundaryIdentified ? 0x10b981 : 0xef4444, 
-        wireframe: true 
+      // Chrome Lock Shackle
+      const shackleGeo = new THREE.TorusGeometry(0.09, 0.02, 12, 24, Math.PI);
+      const shackleMat = new THREE.MeshStandardMaterial({ color: 0xf1f5f9, metalness: 0.95 });
+      const shackleMesh = new THREE.Mesh(shackleGeo, shackleMat);
+      shackleMesh.position.set(0, 0.6, -1.3);
+      arGroup.add(shackleMesh);
+
+      // Laser Danger Boundary Perimeter Fence Box
+      const boundGeo = new THREE.BoxGeometry(2.8, 1.25, 1.6);
+      const boundMat = new THREE.MeshBasicMaterial({
+        color: boundaryIdentified ? 0x10b981 : 0xef4444,
+        wireframe: true
       });
       const boundMesh = new THREE.Mesh(boundGeo, boundMat);
-      boundMesh.position.set(0, -0.1, -1.5);
+      boundMesh.position.set(0, -0.1, -1.6);
       arGroup.add(boundMesh);
     }
 
