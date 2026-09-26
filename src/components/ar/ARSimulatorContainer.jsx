@@ -52,11 +52,13 @@ export default function ARSimulatorContainer({ currentLang, onModuleComplete }) 
   const [audioEnabled, setAudioEnabled] = useState(true);
   const [moduleFinished, setModuleFinished] = useState(false);
   
-  // 360° Orbit Rotation States for 3D View
+  // 360° Orbit Rotation States & Refs for 3D View
   const [rotation, setRotation] = useState({ x: 0, y: 0 });
+  const rotationRef = useRef({ x: 0, y: 0 });
   const [isDragging, setIsDragging] = useState(false);
   const previousTouchRef = useRef({ x: 0, y: 0 });
   const [gyroAngle, setGyroAngle] = useState(0);
+  const gyroAngleRef = useRef(0);
 
   // Module 1: Fire Safety Drill States
   const [extinguisherType, setExtinguisherType] = useState('dcp');
@@ -137,7 +139,9 @@ export default function ARSimulatorContainer({ currentLang, onModuleComplete }) 
   useEffect(() => {
     const handleOrientation = (event) => {
       if (event.gamma !== null) {
-        setGyroAngle(event.gamma * 0.5);
+        const val = event.gamma * 0.5;
+        gyroAngleRef.current = val;
+        setGyroAngle(val);
       }
     };
 
