@@ -2,10 +2,35 @@ import React, { useState, useEffect, useRef } from 'react';
 import * as THREE from 'three';
 import { 
   Activity, Wind, Flame, Droplets, ShieldCheck, Zap, AlertTriangle, 
-  MapPin, RefreshCw, ChevronRight, Layers, Eye
+  MapPin, RefreshCw, ChevronRight, Layers, Eye, Smartphone
 } from 'lucide-react';
 import { TRANSLATIONS } from '../../locales/translations';
 import { playAudioBeep, speakInstruction } from '../../utils/audioEngine';
+
+// Recursive Three.js Memory Disposal Cleanup Helper for low-RAM devices
+function disposeThreeObject(obj) {
+  if (!obj) return;
+  if (obj.children) {
+    while (obj.children.length > 0) {
+      disposeThreeObject(obj.children[0]);
+      obj.remove(obj.children[0]);
+    }
+  }
+  if (obj.geometry) {
+    obj.geometry.dispose();
+  }
+  if (obj.material) {
+    if (Array.isArray(obj.material)) {
+      obj.material.forEach(m => {
+        if (m.map) m.map.dispose();
+        m.dispose();
+      });
+    } else {
+      if (obj.material.map) obj.material.map.dispose();
+      obj.material.dispose();
+    }
+  }
+}
 
 export default function Mine3DMapExplorer({ currentLang }) {
   const t = TRANSLATIONS[currentLang] || TRANSLATIONS.en;
@@ -21,12 +46,30 @@ export default function Mine3DMapExplorer({ currentLang }) {
     alertLevel: 'NORMAL'
   });
 
+  const [gyroEnabled, setGyroEnabled] = useState(false);
+
   // Pit Configurations
   const pits = [
     { id: 'jharia', name: 'Jharia Coalfield Pit #7', depth: '420m Below Surface', color: 'border-amber-500/50' },
     { id: 'moonidih', name: 'Moonidih Deep Shaft #3', depth: '560m Underground', color: 'border-cyan-500/50' },
     { id: 'digwadih', name: 'Digwadih Colliery Seam 14', depth: '380m Below Surface', color: 'border-emerald-500/50' }
   ];
+
+  // Request Explicit Gyroscope Permission for iOS 13+ and Android 13+
+  const requestGyroPermission = async () => {
+    if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function') {
+      try {
+        const response = await DeviceOrientationEvent.requestPermission();
+        if (response === 'granted') {
+          setGyroEnabled(true);
+        }
+      } catch (err) {
+        console.warn('Gyro permission request:', err);
+      }
+    } else {
+      setGyroEnabled(true);
+    }
+  };
 
   // Live Telemetry Stream Simulator
   useEffect(() => {
@@ -50,17 +93,30 @@ export default function Mine3DMapExplorer({ currentLang }) {
 
   // Three.js 3D Pit Shaft Mesh Visualization
   useEffect(() => {
-    if (!canvasRef.current) return;
-    const width = canvasRef.current.clientWidth || 800;
-    const height = canvasRef.current.clientHeight || 450;
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const width = canvas.clientWidth || 800;
+    const height = canvas.clientHeight || 450;
 
     const scene = new THREE.Scene();
     const camera = new THREE.PerspectiveCamera(60, width / height, 0.1, 1000);
     camera.position.set(0, 3.5, 5.0);
     camera.lookAt(0, 0, 0);
 
-    const renderer = new THREE.WebGLRenderer({ canvas: canvasRef.current, alpha: true, antialias: true });
+    const renderer = new THREE.WebGLRenderer({ canvas, alpha: true, antialias: true });
     renderer.setSize(width, height);
+
+    // Context Loss / Restoration Event Handlers
+    const handleContextLost = (e) => {
+      e.preventDefault();
+      console.warn('WebGL Context Lost in Mine3DMapExplorer');
+    };
+    const handleContextRestored = () => {
+      console.log('WebGL Context Restored');
+    };
+
+    canvas.addEventListener('webglcontextlost', handleContextLost, false);
+    canvas.addEventListener('webglcontextrestored', handleContextRestored, false);
 
     // Lights
     const ambientLight = new THREE.AmbientLight(0xffffff, 1.2);
@@ -111,8 +167,12 @@ export default function Mine3DMapExplorer({ currentLang }) {
 
     return () => {
       window.removeEventListener('resize', handleResize);
+      canvas.removeEventListener('webglcontextlost', handleContextLost);
+      canvas.removeEventListener('webglcontextrestored', handleContextRestored);
       cancelAnimationFrame(animId);
+      disposeThreeObject(scene);
       renderer.dispose();
+      renderer.forceContextLoss();
     };
   }, [selectedPit]);
 
@@ -131,6 +191,16 @@ export default function Mine3DMapExplorer({ currentLang }) {
         </div>
 
         <div className="flex items-center space-x-2">
+          {!gyroEnabled && (
+            <button
+              onClick={requestGyroPermission}
+              className="px-3 py-1.5 rounded-xl text-xs font-bold bg-slate-800 hover:bg-slate-700 text-amber-400 border border-amber-500/40 flex items-center space-x-1"
+            >
+              <Smartphone className="w-3.5 h-3.5" />
+              <span>Enable Motion Gyro</span>
+            </button>
+          )}
+
           {pits.map((p) => (
             <button
               key={p.id}

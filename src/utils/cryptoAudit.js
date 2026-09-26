@@ -1,4 +1,4 @@
-// Cryptographic Tamper-Proof Audit & Digital Signature Engine for DGMS Inspection Compliance
+// Dynamic Cryptographic Tamper-Proof Audit & Digital Signature Engine for DGMS Inspection Compliance
 
 export function sha256Simple(str) {
   let hash = 0;
@@ -11,10 +11,19 @@ export function sha256Simple(str) {
   return `0x${hex.toUpperCase()}${Math.abs(hash * 31).toString(16).padStart(8, '0').toUpperCase()}`;
 }
 
+// Generates dynamic device & session salt
+function getDynamicSalt(workerId = '') {
+  const envHost = typeof window !== 'undefined' ? window.location.hostname : 'surakshaar';
+  return `DGMS_DHANBAD_${workerId || 'WORKER'}_${envHost}_2026_SALT_SECURE`;
+}
+
 export function generateDigitalAuditSignature(dataObj) {
+  const workerId = dataObj?.workerId || dataObj?.id || 'DGMS-MINER';
+  const dynamicSalt = getDynamicSalt(workerId);
   const payload = JSON.stringify(dataObj);
-  const hash = sha256Simple(payload + "DGMS_DHANBAD_KEY_2026");
+  const hash = sha256Simple(payload + dynamicSalt);
   const timestamp = new Date().toISOString();
+  
   return {
     signature: `DGMS-SIG-${hash}`,
     payloadHash: hash,

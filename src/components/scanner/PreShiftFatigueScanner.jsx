@@ -22,17 +22,36 @@ export default function PreShiftFatigueScanner({ currentLang = 'hi', onClearance
   const [clearanceCard, setClearanceCard] = useState(null);
 
   const videoRef = useRef(null);
-  const canvasRef = useRef(null);
+  const streamRef = useRef(null);
 
-  // Initialize WebRTC Camera
+  // Initialize WebRTC Camera with mobile webview autoplay safety
   useEffect(() => {
-    let stream = null;
     const startCamera = async () => {
       try {
-        stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' } });
+        if (streamRef.current) {
+          streamRef.current.getTracks().forEach(t => t.stop());
+        }
+
+        // Capacitor Native camera permissions request if running inside native APK
+        if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.Camera) {
+          try {
+            await window.Capacitor.Plugins.Camera.requestPermissions();
+          } catch (capErr) {
+            console.warn('Capacitor native camera check:', capErr);
+          }
+        }
+
+        const stream = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode: { ideal: 'user' }, width: { ideal: 1280 }, height: { ideal: 720 } },
+          audio: false
+        });
+        streamRef.current = stream;
+
         if (videoRef.current) {
           videoRef.current.srcObject = stream;
-          videoRef.current.play();
+          videoRef.current.setAttribute('playsinline', 'true');
+          videoRef.current.muted = true;
+          await videoRef.current.play().catch(e => console.warn('Camera video play caught:', e));
           setCameraActive(true);
         }
       } catch (err) {
@@ -46,8 +65,9 @@ export default function PreShiftFatigueScanner({ currentLang = 'hi', onClearance
     }
 
     return () => {
-      if (stream) {
-        stream.getTracks().forEach(t => t.stop());
+      if (streamRef.current) {
+        streamRef.current.getTracks().forEach(t => t.stop());
+        streamRef.current = null;
       }
     };
   }, [scanState]);
@@ -58,7 +78,7 @@ export default function PreShiftFatigueScanner({ currentLang = 'hi', onClearance
     setGearDetected({ helmet: false, vest: false, respirator: false, boots: true });
     
     voiceAssistant.speak(
-      currentLang === 'sat' ? ' Pre-shift gear scan shuru hoyakina. Helmet, vest aamage check me.' :
+      currentLang === 'sat' ? 'Pre-shift gear scan shuru hoyakina. Helmet, vest aamage check me.' :
       currentLang === 'hi' ? 'प्री-शिफ्ट PPE गियर स्कैन शुरू हो रहा है। हेलमेट और जैकेट चेक करें।' :
       'Pre-shift PPE gear scanning initialized. Align helmet and safety vest.',
       currentLang
@@ -108,9 +128,7 @@ export default function PreShiftFatigueScanner({ currentLang = 'hi', onClearance
     if (updated.length < 3) {
       triggerReactionPrompt();
     } else {
-      // Calculate average reaction time & fatigue score
       const avg = Math.round(updated.reduce((a, b) => a + b, 0) / updated.length);
-      // Avg reaction < 350ms -> 95+, 350-500ms -> 80-94, > 500ms -> < 70
       let score = Math.max(50, Math.min(99, Math.round(100 - (avg - 250) * 0.15)));
       setFatigueScore(score);
 
