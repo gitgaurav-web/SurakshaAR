@@ -90,7 +90,7 @@ export default function App() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans selection:bg-amber-500 selection:text-slate-950">
+    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans selection:bg-amber-500 selection:text-slate-950 max-w-full overflow-x-hidden">
       <Header
         currentLang={currentLang}
         onSelectLang={setCurrentLang}
@@ -100,50 +100,50 @@ export default function App() {
       />
 
       {/* Industrial Worker Quick-HUD Status Ribbon & Profile Switcher */}
-      <div className="bg-slate-900/90 border-b border-slate-800 py-2 px-3 sm:px-6 shadow-md backdrop-blur-md">
+      <div className="bg-slate-900/90 border-b border-slate-800 py-2 px-2 sm:px-6 shadow-md backdrop-blur-md max-w-full overflow-hidden">
         <div className="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-2 text-xs font-mono">
-          <div className="flex items-center space-x-2">
-            <div className="p-1 bg-amber-500/20 text-amber-400 rounded-lg border border-amber-500/30">
+          <div className="flex flex-wrap items-center gap-1.5 sm:gap-2 max-w-full">
+            <div className="p-1 bg-amber-500/20 text-amber-400 rounded-lg border border-amber-500/30 shrink-0">
               <UserCheck className="w-3.5 h-3.5" />
             </div>
-            <span className="text-slate-300 font-bold">{activeWorker.name}</span>
-            <span className="text-slate-500">|</span>
-            <span className="text-amber-400 font-bold">{activeWorker.id}</span>
+            <span className="text-slate-300 font-bold text-[11px] sm:text-xs truncate max-w-[140px] sm:max-w-none">{activeWorker.name}</span>
+            <span className="text-slate-500 hidden xs:inline">|</span>
+            <span className="text-amber-400 font-bold text-[10px] sm:text-xs shrink-0">{activeWorker.id}</span>
 
             {/* Profile Switcher Trigger Button */}
             <button
               onClick={cycleWorkerProfile}
-              className="ml-2 px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-amber-300 border border-amber-500/40 text-[10px] flex items-center space-x-1 font-bold transition active:scale-95 shadow-sm"
+              className="px-2 py-0.5 sm:py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-amber-300 border border-amber-500/40 text-[9px] sm:text-[10px] flex items-center space-x-1 font-bold transition active:scale-95 shadow-sm shrink-0"
               title="Switch Test Worker Profile"
             >
-              <RefreshCw className="w-3 h-3 text-amber-400" />
-              <span>Switch Miner Profile</span>
+              <RefreshCw className="w-3 h-3 text-amber-400 shrink-0" />
+              <span>Switch Miner</span>
             </button>
           </div>
 
-          <div className="flex items-center space-x-2 text-[11px]">
-            <span className="hidden md:flex items-center space-x-1 text-slate-400">
-              <MapPin className="w-3 h-3 text-cyan-400" />
-              <span>{activeWorker.mineSector}</span>
+          <div className="flex flex-wrap items-center gap-1.5 sm:gap-2 text-[10px] sm:text-[11px] shrink-0">
+            <span className="hidden lg:flex items-center space-x-1 text-slate-400">
+              <MapPin className="w-3 h-3 text-cyan-400 shrink-0" />
+              <span className="truncate max-w-[180px]">{activeWorker.mineSector}</span>
             </span>
 
             {/* DGMS TRAINING SCORE Badge */}
-            <span className="flex items-center space-x-1.5 px-3 py-1 bg-gradient-to-r from-emerald-950 to-emerald-900 border border-emerald-500/60 text-emerald-400 rounded-lg font-black tracking-wide shadow-[0_0_12px_rgba(16,185,129,0.3)]">
-              <ShieldCheck className="w-4 h-4 text-emerald-400" />
-              <span>DGMS TRAINING SCORE: {activeWorker.score}%</span>
+            <span className="flex items-center space-x-1 sm:space-x-1.5 px-2.5 sm:px-3 py-0.5 sm:py-1 bg-gradient-to-r from-emerald-950 to-emerald-900 border border-emerald-500/60 text-emerald-400 rounded-lg font-black tracking-wide shadow-[0_0_12px_rgba(16,185,129,0.3)] shrink-0">
+              <ShieldCheck className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-emerald-400 shrink-0" />
+              <span>SCORE: {activeWorker.score}%</span>
             </span>
 
             {/* Hazard Panel Toggle Button */}
             <button
               onClick={() => setShowHazardPanel(!showHazardPanel)}
-              className={`px-2.5 py-1 rounded-lg border text-[10px] font-bold transition flex items-center space-x-1 ${
+              className={`px-2 py-0.5 sm:py-1 rounded-lg border text-[9px] sm:text-[10px] font-bold transition flex items-center space-x-1 shrink-0 ${
                 showHazardPanel 
                   ? 'bg-amber-500/20 border-amber-500/50 text-amber-400' 
                   : 'bg-slate-800 border-slate-700 text-slate-400'
               }`}
             >
-              <AlertTriangle className="w-3 h-3 text-amber-400" />
-              <span>{showHazardPanel ? 'Hide Hazard Panel' : 'Hazard Panel'}</span>
+              <AlertTriangle className="w-3 h-3 text-amber-400 shrink-0" />
+              <span>{showHazardPanel ? 'Hide Panel' : 'Hazard Panel'}</span>
             </button>
           </div>
         </div>
@@ -151,65 +151,65 @@ export default function App() {
 
       {/* ⚠️ Dynamic Real-Time Hazard Detection Panel */}
       {showHazardPanel && (
-        <div className="bg-slate-900/95 border-b border-amber-500/40 px-3 sm:px-6 py-2.5 shadow-lg backdrop-blur-md">
+        <div className="bg-slate-900/95 border-b border-amber-500/40 px-2 sm:px-6 py-2 shadow-lg backdrop-blur-md max-w-full overflow-hidden">
           <div className="max-w-7xl mx-auto">
             <div className="flex items-center justify-between mb-1.5">
-              <span className="text-[10px] font-mono font-bold text-amber-400 uppercase tracking-widest flex items-center gap-1.5">
-                <AlertTriangle className="w-3.5 h-3.5 text-amber-400 animate-pulse" />
+              <span className="text-[9px] sm:text-[10px] font-mono font-bold text-amber-400 uppercase tracking-wider flex items-center gap-1">
+                <AlertTriangle className="w-3 h-3 text-amber-400 animate-pulse shrink-0" />
                 <span>AI HAZARD DETECTION & MONITORING PANEL</span>
               </span>
-              <span className="text-[9px] font-mono text-slate-400">LIVE SENSOR TELEMETRY SYNCED</span>
+              <span className="text-[8px] sm:text-[9px] font-mono text-slate-400 hidden xs:inline">LIVE TELEMETRY SYNCED</span>
             </div>
 
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs font-mono">
-              <div className="p-2 rounded-xl bg-slate-950 border border-slate-800 flex items-center justify-between">
-                <div className="flex items-center space-x-2">
-                  <Flame className="w-4 h-4 text-red-400" />
-                  <div>
-                    <span className="text-[10px] text-slate-400 block">Fire Hazard</span>
-                    <span className="font-bold text-slate-200">DCP Extinguisher</span>
+            <div className="grid grid-cols-1 xs:grid-cols-2 sm:grid-cols-4 gap-1.5 sm:gap-2 text-xs font-mono">
+              <div className="p-1.5 sm:p-2 rounded-xl bg-slate-950 border border-slate-800 flex items-center justify-between">
+                <div className="flex items-center space-x-1.5 sm:space-x-2 truncate">
+                  <Flame className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-red-400 shrink-0" />
+                  <div className="truncate">
+                    <span className="text-[9px] text-slate-400 block leading-tight">Fire Hazard</span>
+                    <span className="font-bold text-slate-200 text-[11px] truncate block">DCP Extinguisher</span>
                   </div>
                 </div>
-                <span className="px-2 py-0.5 rounded text-[9px] font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
+                <span className="px-1.5 py-0.5 rounded text-[8px] sm:text-[9px] font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 shrink-0">
                   SEALED
                 </span>
               </div>
 
-              <div className="p-2 rounded-xl bg-slate-950 border border-slate-800 flex items-center justify-between">
-                <div className="flex items-center space-x-2">
-                  <Wind className="w-4 h-4 text-amber-400" />
-                  <div>
-                    <span className="text-[10px] text-slate-400 block">CH4 Methane</span>
-                    <span className="font-bold text-amber-400">1.85% VOL</span>
+              <div className="p-1.5 sm:p-2 rounded-xl bg-slate-950 border border-slate-800 flex items-center justify-between">
+                <div className="flex items-center space-x-1.5 sm:space-x-2 truncate">
+                  <Wind className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-amber-400 shrink-0" />
+                  <div className="truncate">
+                    <span className="text-[9px] text-slate-400 block leading-tight">CH4 Methane</span>
+                    <span className="font-bold text-amber-400 text-[11px] truncate block">1.85% VOL</span>
                   </div>
                 </div>
-                <span className="px-2 py-0.5 rounded text-[9px] font-bold bg-amber-500/20 text-amber-400 border border-amber-500/30 animate-pulse">
-                  LEAL WARNING
+                <span className="px-1.5 py-0.5 rounded text-[8px] sm:text-[9px] font-bold bg-amber-500/20 text-amber-400 border border-amber-500/30 animate-pulse shrink-0">
+                  LEL WARNING
                 </span>
               </div>
 
-              <div className="p-2 rounded-xl bg-slate-950 border border-slate-800 flex items-center justify-between">
-                <div className="flex items-center space-x-2">
-                  <Lock className="w-4 h-4 text-purple-400" />
-                  <div>
-                    <span className="text-[10px] text-slate-400 block">Motor Breaker</span>
-                    <span className="font-bold text-slate-200">LOTO Lockout</span>
+              <div className="p-1.5 sm:p-2 rounded-xl bg-slate-950 border border-slate-800 flex items-center justify-between">
+                <div className="flex items-center space-x-1.5 sm:space-x-2 truncate">
+                  <Lock className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-purple-400 shrink-0" />
+                  <div className="truncate">
+                    <span className="text-[9px] text-slate-400 block leading-tight">Motor Breaker</span>
+                    <span className="font-bold text-slate-200 text-[11px] truncate block">LOTO Lockout</span>
                   </div>
                 </div>
-                <span className="px-2 py-0.5 rounded text-[9px] font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
+                <span className="px-1.5 py-0.5 rounded text-[8px] sm:text-[9px] font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 shrink-0">
                   LOCKED
                 </span>
               </div>
 
-              <div className="p-2 rounded-xl bg-slate-950 border border-slate-800 flex items-center justify-between">
-                <div className="flex items-center space-x-2">
-                  <ShieldCheck className="w-4 h-4 text-cyan-400" />
-                  <div>
-                    <span className="text-[10px] text-slate-400 block">PPE Readiness</span>
-                    <span className="font-bold text-slate-200">SCBA Mask</span>
+              <div className="p-1.5 sm:p-2 rounded-xl bg-slate-950 border border-slate-800 flex items-center justify-between">
+                <div className="flex items-center space-x-1.5 sm:space-x-2 truncate">
+                  <ShieldCheck className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-cyan-400 shrink-0" />
+                  <div className="truncate">
+                    <span className="text-[9px] text-slate-400 block leading-tight">PPE Readiness</span>
+                    <span className="font-bold text-slate-200 text-[11px] truncate block">SCBA Mask</span>
                   </div>
                 </div>
-                <span className="px-2 py-0.5 rounded text-[9px] font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
+                <span className="px-1.5 py-0.5 rounded text-[8px] sm:text-[9px] font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 shrink-0">
                   100% PASS
                 </span>
               </div>
@@ -218,7 +218,7 @@ export default function App() {
         </div>
       )}
 
-      <main className="flex-1 max-w-7xl w-full mx-auto p-2 sm:p-4 lg:p-6">
+      <main className="flex-1 max-w-7xl w-full mx-auto p-1.5 sm:p-4 lg:p-6 overflow-x-hidden">
         {activeTab === 'ar' && (
           <ARSimulatorContainer
             currentLang={currentLang}
@@ -293,9 +293,9 @@ export default function App() {
         )}
       </main>
 
-      <footer className="bg-slate-950 border-t border-slate-900 py-4 text-center text-[11px] text-slate-500">
+      <footer className="bg-slate-950 border-t border-slate-900 py-4 text-center text-[11px] text-slate-500 max-w-full overflow-hidden">
         <p className="font-semibold text-slate-400 flex items-center justify-center gap-1">
-          <Sparkles className="w-3.5 h-3.5 text-amber-400 inline" />
+          <Sparkles className="w-3.5 h-3.5 text-amber-400 inline shrink-0" />
           <span>SurakshaAR - DGMS Industrial Safety Training Simulator</span>
         </p>
         <p className="text-[10px] text-slate-500 mt-0.5">
