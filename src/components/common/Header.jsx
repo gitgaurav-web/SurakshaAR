@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ShieldCheck, Layers, HardHat, Award, BarChart3, HelpCircle, Bot, Box, ShieldAlert, Target, Wifi, WifiOff, Activity, Wind, Eye, Sparkles } from 'lucide-react';
+import { ShieldCheck, Layers, HardHat, Award, BarChart3, HelpCircle, Bot, Box, ShieldAlert, Target, Wifi, WifiOff, Activity, Wind, Eye, Sparkles, AlertTriangle } from 'lucide-react';
 import LanguageSelector from './LanguageSelector';
 import { TRANSLATIONS } from '../../locales/translations';
 
@@ -38,6 +38,20 @@ export default function Header({ currentLang, onSelectLang, activeTab, setActive
 
   return (
     <header className="sticky top-0 z-50 bg-slate-950/95 backdrop-blur-2xl border-b border-amber-500/30 shadow-[0_4px_30px_rgba(245,158,11,0.2)]">
+      {/* ⚠️ Live Mine Hazard Alert Ticker Banner */}
+      <div className="bg-gradient-to-r from-red-950 via-amber-950 to-red-950 border-b border-red-500/40 py-1 px-4 text-[11px] font-mono text-amber-300 overflow-hidden flex items-center justify-between">
+        <div className="flex items-center space-x-2 animate-pulse shrink-0">
+          <AlertTriangle className="w-3.5 h-3.5 text-red-400" />
+          <span className="font-bold text-red-400">DGMS TELEMETRY ALERT:</span>
+        </div>
+        <div className="truncate mx-4 text-slate-300">
+          <span>Jharia Coalfield Shaft #4 - Methane Level <strong className="text-amber-400">1.85% VOL</strong> | Aux Vent Fan Active | SCBA Drill Mandated</span>
+        </div>
+        <span className="hidden sm:inline-block px-2 py-0.5 rounded bg-red-500/20 text-red-400 border border-red-500/40 font-bold shrink-0">
+          LIVE TICKER
+        </span>
+      </div>
+
       <div className="max-w-7xl mx-auto px-2 sm:px-6">
         {/* Main Brand Logo & SOS Telemetry Bar */}
         <div className="flex items-center justify-between h-16 border-b border-slate-800/80">

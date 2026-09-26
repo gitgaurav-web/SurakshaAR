@@ -81,6 +81,28 @@ export const playAudioBeep = (type = 'alarm') => {
       gain.gain.setValueAtTime(0.2, audioCtx.currentTime);
       osc.start();
       osc.stop(audioCtx.currentTime + 0.15);
+    } else if (type === 'spray') {
+      // White noise buffer for extinguisher discharge sound
+      const bufferSize = audioCtx.sampleRate * 0.5;
+      const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+      const data = buffer.getChannelData(0);
+      for (let i = 0; i < bufferSize; i++) {
+        data[i] = Math.random() * 2 - 1;
+      }
+      const noise = audioCtx.createBufferSource();
+      noise.buffer = buffer;
+      gain.gain.setValueAtTime(0.2, audioCtx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.5);
+      noise.connect(gain);
+      noise.start();
+    } else if (type === 'fan') {
+      // Low rumble for auxiliary fan motor
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(120, audioCtx.currentTime);
+      osc.frequency.exponentialRampToValueAtTime(320, audioCtx.currentTime + 0.4);
+      gain.gain.setValueAtTime(0.3, audioCtx.currentTime);
+      osc.start();
+      osc.stop(audioCtx.currentTime + 0.4);
     }
   } catch (err) {
     console.error('AudioContext sound error:', err);

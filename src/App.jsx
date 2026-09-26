@@ -15,15 +15,10 @@ import PreShiftFatigueScanner from './components/scanner/PreShiftFatigueScanner'
 import GasPlumeSimulator from './components/gas/GasPlumeSimulator';
 import { TRANSLATIONS } from './locales/translations';
 import { saveWorkerEvaluation } from './utils/offlineStorage';
-import { UserCheck, ShieldCheck, MapPin, Sparkles, Activity } from 'lucide-react';
+import { UserCheck, ShieldCheck, MapPin, Sparkles, RefreshCw } from 'lucide-react';
 
-export default function App() {
-  const [currentLang, setCurrentLang] = useState('hi');
-  const [activeTab, setActiveTab] = useState('ar');
-  const [isScannerOpen, setIsScannerOpen] = useState(false);
-  const [isSosOpen, setIsSosOpen] = useState(false);
-  
-  const [activeWorker, setActiveWorker] = useState({
+const PRESET_WORKERS = [
+  {
     id: "JHK-MN-2026-081",
     name: "Budhan Manjhi",
     language: "sat",
@@ -33,7 +28,39 @@ export default function App() {
     certified: true,
     certHash: "0x8F9A7B3C2D1E4F5A",
     certDate: new Date().toISOString().split('T')[0]
-  });
+  },
+  {
+    id: "JHK-MN-2026-104",
+    name: "Ramesh Kumar Sharma",
+    language: "hi",
+    mineSector: "Digwadih Colliery Seam 14",
+    orientationDays: 30,
+    score: 88,
+    certified: true,
+    certHash: "0x3A2B1C4D5E6F7A8B",
+    certDate: new Date().toISOString().split('T')[0]
+  },
+  {
+    id: "JHK-MN-2026-215",
+    name: "Sarah Thomas",
+    language: "en",
+    mineSector: "Moonidih Deep Shaft #3",
+    orientationDays: 45,
+    score: 96,
+    certified: true,
+    certHash: "0x9E8D7C6B5A4F3E2D",
+    certDate: new Date().toISOString().split('T')[0]
+  }
+];
+
+export default function App() {
+  const [currentLang, setCurrentLang] = useState('hi');
+  const [activeTab, setActiveTab] = useState('ar');
+  const [isScannerOpen, setIsScannerOpen] = useState(false);
+  const [isSosOpen, setIsSosOpen] = useState(false);
+  
+  const [activeWorkerIndex, setActiveWorkerIndex] = useState(0);
+  const activeWorker = PRESET_WORKERS[activeWorkerIndex];
 
   const t = TRANSLATIONS[currentLang] || TRANSLATIONS.en;
 
@@ -48,13 +75,17 @@ export default function App() {
       score: finalScore,
       language: currentLang
     });
-    setActiveWorker(updated);
     setActiveTab('certificate');
   };
 
   const handleViewWorkerCert = (workerData) => {
-    setActiveWorker(workerData);
     setActiveTab('certificate');
+  };
+
+  const cycleWorkerProfile = () => {
+    const nextIdx = (activeWorkerIndex + 1) % PRESET_WORKERS.length;
+    setActiveWorkerIndex(nextIdx);
+    setCurrentLang(PRESET_WORKERS[nextIdx].language);
   };
 
   return (
@@ -67,7 +98,7 @@ export default function App() {
         onOpenSos={() => setIsSosOpen(true)}
       />
 
-      {/* Industrial Worker Quick-HUD Status Ribbon */}
+      {/* Industrial Worker Quick-HUD Status Ribbon & Profile Switcher */}
       <div className="bg-slate-900/90 border-b border-slate-800 py-2 px-3 sm:px-6 shadow-md backdrop-blur-md">
         <div className="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-2 text-xs font-mono">
           <div className="flex items-center space-x-2">
@@ -77,6 +108,16 @@ export default function App() {
             <span className="text-slate-300 font-bold">{activeWorker.name}</span>
             <span className="text-slate-500">|</span>
             <span className="text-amber-400 font-bold">{activeWorker.id}</span>
+
+            {/* Profile Switcher Trigger Button */}
+            <button
+              onClick={cycleWorkerProfile}
+              className="ml-2 px-2 py-0.5 rounded bg-slate-800 hover:bg-slate-700 text-amber-300 border border-amber-500/30 text-[10px] flex items-center space-x-1 font-bold transition active:scale-95"
+              title="Switch Test Worker Profile"
+            >
+              <RefreshCw className="w-3 h-3 text-amber-400" />
+              <span>Switch Miner Profile</span>
+            </button>
           </div>
 
           <div className="flex items-center space-x-3 text-[11px]">
@@ -87,7 +128,7 @@ export default function App() {
 
             <span className="flex items-center space-x-1 px-2 py-0.5 bg-emerald-950/80 border border-emerald-500/40 text-emerald-400 rounded-md font-bold">
               <ShieldCheck className="w-3 h-3 text-emerald-400" />
-              <span>DGMS CERTIFIED (92%)</span>
+              <span>DGMS CERTIFIED ({activeWorker.score}%)</span>
             </span>
           </div>
         </div>
@@ -158,7 +199,7 @@ export default function App() {
         )}
 
         {/* Safety Fallback */}
-        {!['ar', 'telemetry', 'scanner', 'gas', 'game', 'assistant', 'explorer', 'assessment', 'certificate', 'admin', 'guide'].includes(activeTab) && (
+        {!['ar', 'telemetry', 'scanner', 'gas', 'game', 'assessment', 'certificate', 'admin', 'guide', 'assistant', 'explorer'].includes(activeTab) && (
           <ARSimulatorContainer
             currentLang={currentLang}
             onModuleComplete={handleModuleComplete}
