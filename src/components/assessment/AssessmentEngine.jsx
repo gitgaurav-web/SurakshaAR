@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { Award, CheckCircle2, XCircle, HardHat, AlertTriangle, ShieldCheck, ArrowRight, RotateCcw } from 'lucide-react';
+import { Award as LucideAward, CheckCircle2, XCircle, HardHat, AlertTriangle, ShieldCheck, ArrowRight, RotateCcw } from 'lucide-react';
+const Award = LucideAward || ShieldCheck;
 import { TRANSLATIONS } from '../../locales/translations';
 import { playAudioBeep, speakInstruction } from '../../utils/audioEngine';
 import confetti from 'canvas-confetti';

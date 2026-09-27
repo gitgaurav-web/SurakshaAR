@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { ShieldCheck, Layers, HardHat, Award, BarChart3, HelpCircle, Bot, Box, ShieldAlert, Target, Wifi, WifiOff, Activity, Wind, Eye, Sparkles, AlertTriangle } from 'lucide-react';
+import { ShieldCheck, Layers, HardHat, Award as LucideAward, BarChart3, HelpCircle, Bot, Box, ShieldAlert, Target, Wifi, WifiOff, Activity, Wind, Eye, Sparkles, AlertTriangle } from 'lucide-react';
+const Award = LucideAward || ShieldCheck;
 import LanguageSelector from './LanguageSelector';
 import { TRANSLATIONS } from '../../locales/translations';
 

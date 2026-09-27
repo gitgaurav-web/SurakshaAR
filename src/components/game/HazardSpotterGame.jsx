@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { ShieldAlert, CheckCircle2, Clock, RotateCcw, Flame, AlertTriangle, Sparkles, Award } from 'lucide-react';
+import { ShieldAlert, CheckCircle2, Clock, RotateCcw, Flame, AlertTriangle, Sparkles, Award as LucideAward } from 'lucide-react';
+const Award = LucideAward || ShieldAlert;
 import { TRANSLATIONS } from '../../locales/translations';
 import { playAudioBeep, speakInstruction } from '../../utils/audioEngine';
 import confetti from 'canvas-confetti';

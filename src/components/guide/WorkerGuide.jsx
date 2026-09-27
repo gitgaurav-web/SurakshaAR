@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { jsPDF } from 'jspdf';
-import { Flame, Wind, Cog, Award, Volume2, Camera, ShieldCheck, CheckCircle2, Download, FileText } from 'lucide-react';
+import { Flame, Wind, Cog, Award as LucideAward, Volume2, Camera, ShieldCheck, CheckCircle2, Download, FileText } from 'lucide-react';
+const Award = LucideAward || ShieldCheck;
 import { TRANSLATIONS } from '../../locales/translations';
 import { speakInstruction } from '../../utils/audioEngine';
 

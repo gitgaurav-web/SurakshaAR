@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import QRCode from 'qrcode';
 import { jsPDF } from 'jspdf';
-import { Award, ShieldCheck, Download, Printer, QrCode, CheckCircle2, Building2, Calendar, UserCheck, FileCheck } from 'lucide-react';
+import { Award as LucideAward, ShieldCheck, Download, Printer, QrCode, CheckCircle2, Building2, Calendar, UserCheck, FileCheck } from 'lucide-react';
+const Award = LucideAward || ShieldCheck;
 import { TRANSLATIONS } from '../../locales/translations';
 import { generateCertHash } from '../../utils/offlineStorage';
 

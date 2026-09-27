@@ -3,8 +3,10 @@ import * as THREE from 'three';
 import { 
   Camera, Volume2, VolumeX, ShieldAlert, CheckCircle2, RotateCcw, 
   ChevronRight, ChevronLeft, Flame, Wind, Cog, AlertTriangle, 
-  Lock, RefreshCw, Layers, Eye, Sun, Moon, Activity, Zap, CheckSquare, Award, Target, Thermometer, ShieldCheck, Sparkles, Smartphone, Info
+  Lock, RefreshCw, Layers, Eye, Sun, Moon, Activity, Zap, CheckSquare, Award as LucideAward, Target, Thermometer, ShieldCheck, Sparkles, Smartphone, Info
 } from 'lucide-react';
+
+const Award = LucideAward || ShieldCheck;
 import { TRANSLATIONS } from '../../locales/translations';
 import { speakInstruction, playAudioBeep } from '../../utils/audioEngine';
 

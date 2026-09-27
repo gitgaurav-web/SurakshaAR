@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { jsPDF } from 'jspdf';
-import { Users, ShieldCheck, AlertTriangle, Building2, Download, Search, CheckCircle2, XCircle, Award, Eye, FileSpreadsheet, MapPin, Activity, Flame, ShieldAlert, Sparkles, FileText } from 'lucide-react';
+import { Users, ShieldCheck, AlertTriangle, Building2, Download, Search, CheckCircle2, XCircle, Award as LucideAward, Eye, FileSpreadsheet, MapPin, Activity, Flame, ShieldAlert, Sparkles, FileText } from 'lucide-react';
+const Award = LucideAward || ShieldCheck;
 import { TRANSLATIONS } from '../../locales/translations';
 import { getWorkerRoster } from '../../utils/offlineStorage';
 
