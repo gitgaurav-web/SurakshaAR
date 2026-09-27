@@ -3,7 +3,7 @@ import * as THREE from 'three';
 import { 
   Camera, Volume2, VolumeX, ShieldAlert, CheckCircle2, RotateCcw, 
   ChevronRight, ChevronLeft, Flame, Wind, Cog, AlertTriangle, 
-  Lock, RefreshCw, Layers, Eye, Sun, Moon, Activity, Zap, CheckSquare, Award, Target, Thermometer, ShieldCheck, Sparkles, Smartphone
+  Lock, RefreshCw, Layers, Eye, Sun, Moon, Activity, Zap, CheckSquare, Award, Target, Thermometer, ShieldCheck, Sparkles, Smartphone, Info
 } from 'lucide-react';
 import { TRANSLATIONS } from '../../locales/translations';
 import { speakInstruction, playAudioBeep } from '../../utils/audioEngine';
@@ -52,6 +52,9 @@ export default function ARSimulatorContainer({ currentLang, onModuleComplete, on
   const [audioEnabled, setAudioEnabled] = useState(true);
   const [moduleFinished, setModuleFinished] = useState(false);
   
+  // Thermal Inspection Sub-Target Selection ('equipment', 'ambient', 'gear')
+  const [thermalTarget, setThermalTarget] = useState('equipment');
+
   // 360° Orbit Rotation States & Refs for 3D View
   const [rotation, setRotation] = useState({ x: 0, y: 0 });
   const rotationRef = useRef({ x: 0, y: 0 });
@@ -561,23 +564,59 @@ export default function ARSimulatorContainer({ currentLang, onModuleComplete, on
     }
   };
 
-  // Dynamic Accurate Thermal Sensor Telemetry Calculator
+  // Dynamic & Clear Equipment Thermal Telemetry Calculator
   const getThermalData = () => {
     const baseNoise = Math.sin(Date.now() * 0.002) * 0.3;
 
+    if (thermalTarget === 'ambient') {
+      const valC = 28.5 + baseNoise;
+      return {
+        targetName: 'Mine Tunnel Strata Ambient Air',
+        targetNameHi: 'भूमिगत सुरंग हवा (Ambient Air)',
+        tempC: valC.toFixed(1),
+        tempF: ((valC * 9 / 5) + 32).toFixed(1),
+        status: 'OPTIMAL STRATA AIR TEMP',
+        description: 'DGMS Standard Mine Airflow Temp (<30°C)',
+        level: 'normal',
+        color: 'text-emerald-400 border-emerald-500/80 bg-slate-950/95',
+        badge: 'AMBIENT AIR (28.5°C)',
+        emissivity: 'ε: 0.98'
+      };
+    }
+
+    if (thermalTarget === 'gear') {
+      const valC = 29.8 + baseNoise;
+      return {
+        targetName: 'Safety Extinguisher & SCBA Gear Pack',
+        targetNameHi: 'सुरक्षा उपकरण (Safety Extinguisher Gear)',
+        tempC: valC.toFixed(1),
+        tempF: ((valC * 9 / 5) + 32).toFixed(1),
+        status: 'EQUIPMENT COOL & READY',
+        description: 'Pressurized DCP Cylinder Storage Temp',
+        level: 'normal',
+        color: 'text-cyan-400 border-cyan-500/80 bg-slate-950/95',
+        badge: 'SAFETY GEAR (29.8°C)',
+        emissivity: 'ε: 0.92'
+      };
+    }
+
+    // Default 'equipment' active drill hazard target
     if (selectedModule === 'fire') {
       if (currentStep === 1 || currentStep === 2) {
         const valC = 248.5 + baseNoise;
         const tempC = valC.toFixed(1);
         const tempF = ((valC * 9 / 5) + 32).toFixed(1);
         return {
+          targetName: 'High-Voltage Mining Cable (Active Fire)',
+          targetNameHi: 'इलेक्ट्रिक खनन केबल (आग का हॉटस्पॉट)',
           tempC,
           tempF,
-          status: 'CRITICAL FLIR HOTSPOT',
-          description: 'ELECTRICAL CABLE FIRE ANOMALY DETECTED',
+          status: 'CRITICAL OVERHEAT FIRE HAZARD',
+          description: 'Electrical Cable Short Circuit Burning at 248°C! Extinguish Immediately.',
           level: 'critical',
-          color: 'text-red-400 border-red-500/80 bg-slate-950/90',
-          badge: 'CRITICAL (248°C)'
+          color: 'text-red-400 border-red-500/90 bg-slate-950/95',
+          badge: 'BURNING CABLE (248.5°C)',
+          emissivity: 'ε: 0.95'
         };
       } else if (currentStep === 3) {
         const progress = passState.sweepProgress || 0;
@@ -586,26 +625,32 @@ export default function ARSimulatorContainer({ currentLang, onModuleComplete, on
         const tempF = ((valC * 9 / 5) + 32).toFixed(1);
         const isCool = valC < 45.0;
         return {
+          targetName: 'Cable Fire Base (Extinguishing)',
+          targetNameHi: 'केबल फायर बेस (P.A.S.S. बुझाने की प्रक्रिया)',
           tempC,
           tempF,
-          status: isCool ? 'SAFE COOLING COMPLETE' : 'P.A.S.S. EXTINGUISHING IN PROGRESS',
-          description: isCool ? 'THERMAL ANOMALY NEUTRALIZED' : 'DCP FLAME HEAT DISSIPATING',
+          status: isCool ? 'FLAME COOLED TO SAFE LEVEL' : 'P.A.S.S. DISCHARGE COOLING IN PROGRESS',
+          description: isCool ? 'DCP Powder Smothered Flame. Heat Dissipated.' : 'DCP Chemical Cooling Reaction In Progress.',
           level: isCool ? 'normal' : 'warm',
-          color: isCool ? 'text-emerald-400 border-emerald-500/80 bg-slate-950/90' : 'text-amber-400 border-amber-500/80 bg-slate-950/90',
-          badge: isCool ? 'NORMAL (31°C)' : 'COOLING'
+          color: isCool ? 'text-emerald-400 border-emerald-500/80 bg-slate-950/95' : 'text-amber-400 border-amber-500/80 bg-slate-950/95',
+          badge: isCool ? 'COOLED (31°C)' : 'COOLING IN PROGRESS',
+          emissivity: 'ε: 0.95'
         };
       } else {
         const valC = 29.4 + baseNoise;
         const tempC = valC.toFixed(1);
         const tempF = ((valC * 9 / 5) + 32).toFixed(1);
         return {
+          targetName: 'Electrical Cable (Post-Fire Cooled)',
+          targetNameHi: 'केबल (बुझने के बाद सामान्य तापमान)',
           tempC,
           tempF,
-          status: 'NORMAL AMBIENT TEMP',
-          description: 'FIRE HAZARD COOLED TO AMBIENT',
+          status: 'SAFE AMBIENT TEMPERATURE',
+          description: 'Cable Flame Completely Extinguished & Cooled to Ambient.',
           level: 'normal',
-          color: 'text-emerald-400 border-emerald-500/80 bg-slate-950/90',
-          badge: 'NORMAL (29°C)'
+          color: 'text-emerald-400 border-emerald-500/80 bg-slate-950/95',
+          badge: 'SAFE (29.4°C)',
+          emissivity: 'ε: 0.95'
         };
       }
     }
@@ -616,26 +661,32 @@ export default function ARSimulatorContainer({ currentLang, onModuleComplete, on
         const tempC = valC.toFixed(1);
         const tempF = ((valC * 9 / 5) + 32).toFixed(1);
         return {
+          targetName: 'CH4 Gas Pipe Joint & Release Valve',
+          targetNameHi: 'मीथेन गैस पाइप रिसाव वाल्व (घर्षण ताप)',
           tempC,
           tempF,
-          status: 'WARM CH4 LEAK FRICTION',
-          description: 'CH4 LEAK FRICTION & VALVE HEAT DENSITY',
+          status: 'WARM GAS SEEPAGE FRICTION',
+          description: 'High-Pressure Methane Gas Escaping Valve Joint at 78°C.',
           level: 'warm',
-          color: 'text-amber-400 border-amber-500/80 bg-slate-950/90',
-          badge: 'HIGH GAS (78°C)'
+          color: 'text-amber-400 border-amber-500/80 bg-slate-950/95',
+          badge: 'GAS VALVE (78.4°C)',
+          emissivity: 'ε: 0.91'
         };
       } else {
         const valC = 28.8 + baseNoise;
         const tempC = valC.toFixed(1);
         const tempF = ((valC * 9 / 5) + 32).toFixed(1);
         return {
+          targetName: 'CH4 Gas Valve (Isolated & Sealed)',
+          targetNameHi: 'मीथेन वाल्व (बंद व सुरक्षित)',
           tempC,
           tempF,
-          status: 'NORMAL VENTILATION TEMP',
-          description: 'UNDERGROUND MINE AIRFLOW OPTIMAL',
+          status: 'VALVE SEALED & COOLED',
+          description: 'Gas Flow Isolated. Valve Temperature Normal.',
           level: 'normal',
-          color: 'text-emerald-400 border-emerald-500/80 bg-slate-950/90',
-          badge: 'NORMAL (28°C)'
+          color: 'text-emerald-400 border-emerald-500/80 bg-slate-950/95',
+          badge: 'SEALED (28.8°C)',
+          emissivity: 'ε: 0.91'
         };
       }
     }
@@ -646,26 +697,32 @@ export default function ARSimulatorContainer({ currentLang, onModuleComplete, on
         const tempC = valC.toFixed(1);
         const tempF = ((valC * 9 / 5) + 32).toFixed(1);
         return {
+          targetName: 'Conveyor Motor Electric Bearing',
+          targetNameHi: 'कन्वेयर बेल्ट मोटर बियरिंग (अत्यधिक गर्म)',
           tempC,
           tempF,
-          status: 'CRITICAL HOTSPOT',
-          description: 'ENERGIZED MOTOR BEARING OVERHEAT',
+          status: 'ENERGIZED BEARING OVERHEAT',
+          description: 'Conveyor Motor Bearing Overheating at 124°C. Isolate Breaker Immediately.',
           level: 'critical',
-          color: 'text-red-400 border-red-500/80 bg-slate-950/90',
-          badge: 'OVERHEAT (124°C)'
+          color: 'text-red-400 border-red-500/90 bg-slate-950/95',
+          badge: 'MOTOR BEARING (124°C)',
+          emissivity: 'ε: 0.96'
         };
       } else {
         const valC = 30.2 + baseNoise;
         const tempC = valC.toFixed(1);
         const tempF = ((valC * 9 / 5) + 32).toFixed(1);
         return {
+          targetName: 'Conveyor Motor (LOTO De-energized)',
+          targetNameHi: 'कन्वेयर मोटर (LOTO लॉक के बाद सुरक्षित)',
           tempC,
           tempF,
-          status: 'ZERO ENERGY SAFE',
-          description: 'MOTOR FULLY COOLED & DE-ENERGIZED',
+          status: 'ZERO ENERGY COOLED SAFE',
+          description: 'Breaker Isolated. Motor Fully Cooled & Safe for Maintenance.',
           level: 'normal',
-          color: 'text-emerald-400 border-emerald-500/80 bg-slate-950/90',
-          badge: 'SAFE (30°C)'
+          color: 'text-emerald-400 border-emerald-500/80 bg-slate-950/95',
+          badge: 'LOCKED SAFE (30.2°C)',
+          emissivity: 'ε: 0.96'
         };
       }
     }
@@ -674,12 +731,14 @@ export default function ARSimulatorContainer({ currentLang, onModuleComplete, on
     const tempC = valC.toFixed(1);
     const tempF = ((valC * 9 / 5) + 32).toFixed(1);
     return {
+      targetName: 'Underground Tunnel Wall Strata',
+      targetNameHi: 'भूमिगत खदान की दीवार (Strata)',
       tempC,
       tempF,
       status: 'NORMAL AMBIENT TEMP',
-      description: 'MINE SHAFT STRATA AMBIENT TEMP',
+      description: 'Strata Temperature Within Safe Operational Limits.',
       level: 'normal',
-      color: 'text-emerald-400 border-emerald-500/80 bg-slate-950/90',
+      color: 'text-emerald-400 border-emerald-500/80 bg-slate-950/95',
       badge: 'NORMAL'
     };
   };
@@ -799,6 +858,42 @@ export default function ARSimulatorContainer({ currentLang, onModuleComplete, on
         </div>
       </div>
 
+      {/* Thermal View Specific Equipment Target Selector Pills (Shown when Thermal View is active) */}
+      {filterMode === 'thermal' && (
+        <div className="bg-slate-900 px-3 py-1.5 border-b border-slate-800 flex items-center justify-between text-xs font-mono">
+          <span className="text-[10px] text-amber-400 font-bold flex items-center gap-1 shrink-0">
+            <Thermometer className="w-3.5 h-3.5 text-red-400" />
+            <span>FLIR TARGET:</span>
+          </span>
+          <div className="flex items-center space-x-1 overflow-x-auto no-scrollbar">
+            <button
+              onClick={() => setThermalTarget('equipment')}
+              className={`px-2.5 py-1 rounded-lg text-[10px] font-bold border transition ${
+                thermalTarget === 'equipment' ? 'bg-red-500 text-white border-red-400' : 'bg-slate-950 text-slate-400 border-slate-800'
+              }`}
+            >
+              🔥 Equipment Hazard
+            </button>
+            <button
+              onClick={() => setThermalTarget('ambient')}
+              className={`px-2.5 py-1 rounded-lg text-[10px] font-bold border transition ${
+                thermalTarget === 'ambient' ? 'bg-emerald-500 text-slate-950 border-emerald-400' : 'bg-slate-950 text-slate-400 border-slate-800'
+              }`}
+            >
+              🌡️ Mine Air (Ambient)
+            </button>
+            <button
+              onClick={() => setThermalTarget('gear')}
+              className={`px-2.5 py-1 rounded-lg text-[10px] font-bold border transition ${
+                thermalTarget === 'gear' ? 'bg-cyan-500 text-slate-950 border-cyan-400' : 'bg-slate-950 text-slate-400 border-slate-800'
+              }`}
+            >
+              🧯 Extinguisher Pack
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* 3. AR Camera, Thermal & 3D Interactive Viewport */}
       <div 
         onMouseDown={handleMouseDown}
@@ -807,7 +902,7 @@ export default function ARSimulatorContainer({ currentLang, onModuleComplete, on
         onTouchStart={handleTouchStart}
         onTouchMove={handleTouchMove}
         onTouchEnd={handleTouchEnd}
-        className="relative w-full h-[380px] bg-slate-950 overflow-hidden flex items-center justify-center cursor-grab active:cursor-grabbing touch-none max-w-full"
+        className="relative w-full h-[400px] bg-slate-950 overflow-hidden flex items-center justify-center cursor-grab active:cursor-grabbing touch-none max-w-full"
       >
         {/* Live Camera Feed (WebRTC Binding with FLIR False Color Matrix Filter when Thermal is active) */}
         <video
@@ -929,7 +1024,7 @@ export default function ARSimulatorContainer({ currentLang, onModuleComplete, on
           return (
             <div className="absolute inset-0 pointer-events-none z-20 flex flex-col justify-between p-3">
               {/* FLIR Thermal Color Legend Bar (Right Edge) */}
-              <div className="absolute right-3 top-12 bottom-12 w-4 bg-gradient-to-t from-blue-600 via-green-500 via-yellow-400 to-red-600 rounded-full border border-white/40 flex flex-col justify-between text-[8px] font-mono text-white text-center py-1 font-bold shadow-lg">
+              <div className="absolute right-3 top-10 bottom-10 w-4 bg-gradient-to-t from-blue-600 via-green-500 via-yellow-400 to-red-600 rounded-full border border-white/40 flex flex-col justify-between text-[8px] font-mono text-white text-center py-1 font-bold shadow-lg">
                 <span>300°</span>
                 <span>150°</span>
                 <span>50°</span>
@@ -937,8 +1032,8 @@ export default function ARSimulatorContainer({ currentLang, onModuleComplete, on
               </div>
 
               {/* Center Thermal Target Scanner Reticle */}
-              <div className="my-auto flex flex-col items-center justify-center">
-                <div className={`w-32 h-32 border-2 rounded-full flex items-center justify-center animate-pulse transition-all ${
+              <div className="my-auto flex flex-col items-center justify-center max-w-sm mx-auto">
+                <div className={`w-28 h-28 border-2 rounded-full flex items-center justify-center animate-pulse transition-all ${
                   thermal.level === 'critical' ? 'border-red-500/90 shadow-[0_0_25px_rgba(239,68,68,0.8)]' :
                   thermal.level === 'warm' ? 'border-amber-500/90 shadow-[0_0_20px_rgba(245,158,11,0.6)]' :
                   'border-emerald-500/80 shadow-[0_0_15px_rgba(16,185,129,0.5)]'
@@ -950,17 +1045,22 @@ export default function ARSimulatorContainer({ currentLang, onModuleComplete, on
                   }`} />
                 </div>
 
-                {/* FLIR Thermal Telemetry Card */}
-                <div className={`mt-3 px-4 py-2 rounded-2xl border backdrop-blur-md shadow-2xl flex flex-col items-center space-y-1 ${thermal.color}`}>
-                  <div className="flex items-center space-x-2">
+                {/* FLIR Thermal Detailed Telemetry Card */}
+                <div className={`mt-2 px-3 py-2 rounded-2xl border backdrop-blur-md shadow-2xl flex flex-col items-center space-y-1 w-full text-center ${thermal.color}`}>
+                  <div className="text-[10px] font-mono font-black text-amber-300 uppercase tracking-wider flex items-center gap-1">
+                    <Info className="w-3.5 h-3.5 text-amber-400" />
+                    <span>TARGET: {thermal.targetName}</span>
+                  </div>
+
+                  <div className="flex items-center justify-center space-x-2">
                     <Flame className={`w-4 h-4 ${
                       thermal.level === 'critical' ? 'text-red-400 animate-bounce' :
                       thermal.level === 'warm' ? 'text-amber-400' : 'text-emerald-400'
                     }`} />
-                    <span className="text-base font-mono font-black tracking-wider text-white">
+                    <span className="text-base sm:text-lg font-mono font-black tracking-wider text-white">
                       {thermal.tempC}°C <span className="text-xs text-slate-300 font-normal">({thermal.tempF}°F)</span>
                     </span>
-                    <span className={`px-2 py-0.5 rounded-full text-[10px] font-mono font-extrabold uppercase border ${
+                    <span className={`px-2 py-0.5 rounded-full text-[9px] font-mono font-extrabold uppercase border ${
                       thermal.level === 'critical' ? 'bg-red-500/30 text-red-300 border-red-500/60' :
                       thermal.level === 'warm' ? 'bg-amber-500/30 text-amber-300 border-amber-500/60' :
                       'bg-emerald-500/30 text-emerald-300 border-emerald-500/60'
@@ -968,8 +1068,14 @@ export default function ARSimulatorContainer({ currentLang, onModuleComplete, on
                       {thermal.badge}
                     </span>
                   </div>
+
                   <div className="text-[10px] font-mono font-bold tracking-tight text-slate-200">
                     {thermal.status} • {thermal.description}
+                  </div>
+                  <div className="text-[9px] font-mono text-slate-400 pt-0.5 border-t border-slate-800 w-full flex justify-between px-2">
+                    <span>{thermal.emissivity}</span>
+                    <span>DISTANCE: 1.4M</span>
+                    <span>FLIR PRO V2.4</span>
                   </div>
                 </div>
               </div>
