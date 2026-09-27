@@ -81,6 +81,12 @@ export const playAudioBeep = (type = 'alarm') => {
       gain.gain.setValueAtTime(0.2, audioCtx.currentTime);
       osc.start();
       osc.stop(audioCtx.currentTime + 0.15);
+    } else if (type === 'fail') {
+      osc.type = 'sawtooth';
+      osc.frequency.setValueAtTime(220, audioCtx.currentTime);
+      gain.gain.setValueAtTime(0.3, audioCtx.currentTime);
+      osc.start();
+      osc.stop(audioCtx.currentTime + 0.25);
     } else if (type === 'spray') {
       // White noise buffer for extinguisher discharge sound
       const bufferSize = audioCtx.sampleRate * 0.5;
