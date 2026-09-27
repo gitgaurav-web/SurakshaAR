@@ -215,16 +215,26 @@ export default function EquipmentExplorer({ currentLang }) {
     sceneRef.current = scene;
 
     const camera = new THREE.PerspectiveCamera(50, width / height, 0.1, 1000);
-    camera.position.set(0, 0, 3.2);
-
-    const renderer = new THREE.WebGLRenderer({
-      canvas: canvasRef.current,
-      alpha: true,
-      antialias: true
-    });
-    renderer.setSize(width, height);
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-    rendererRef.current = renderer;
+    let renderer = null;
+    try {
+      if (canvasRef.current) {
+        const gl = canvasRef.current.getContext('webgl2') || canvasRef.current.getContext('webgl') || canvasRef.current.getContext('experimental-webgl');
+        if (gl) {
+          renderer = new THREE.WebGLRenderer({
+            canvas: canvasRef.current,
+            alpha: true,
+            antialias: true,
+            powerPreference: 'high-performance',
+            failIfMajorPerformanceCaveat: false
+          });
+          renderer.setSize(width, height);
+          renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+          rendererRef.current = renderer;
+        }
+      }
+    } catch (err) {
+      console.warn('Equipment WebGLRenderer init failed gracefully:', err);
+    }
 
     const ambientLight = new THREE.AmbientLight(0xffffff, 1.4);
     scene.add(ambientLight);

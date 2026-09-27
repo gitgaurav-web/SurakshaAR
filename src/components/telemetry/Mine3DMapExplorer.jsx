@@ -208,6 +208,17 @@ export default function Mine3DMapExplorer({ currentLang = 'en' }) {
   const previousMousePositionRef = useRef({ x: 0, y: 0 });
   const rotationRef = useRef({ x: 0.2, y: 0 });
 
+// Test WebGL availability safely
+function testWebGLAvailable(canvas) {
+  if (!canvas) return false;
+  try {
+    const gl = canvas.getContext('webgl2') || canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
+    return !!(gl && typeof gl.getExtension === 'function');
+  } catch (e) {
+    return false;
+  }
+}
+
   // Three.js 3D Shaft Engine Setup
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -216,16 +227,104 @@ export default function Mine3DMapExplorer({ currentLang = 'en' }) {
     const width = canvas.clientWidth || 800;
     const height = canvas.clientHeight || 450;
 
+    let renderer = null;
+    let webglSuccess = false;
+
+    if (testWebGLAvailable(canvas)) {
+      try {
+        renderer = new THREE.WebGLRenderer({ 
+          canvas, 
+          alpha: true, 
+          antialias: true,
+          powerPreference: 'high-performance',
+          failIfMajorPerformanceCaveat: false
+        });
+        renderer.setSize(width, height);
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+        webglSuccess = true;
+      } catch (err) {
+        console.warn('WebGLRenderer init failed, falling back to 2D Shaft Canvas:', err);
+        webglSuccess = false;
+      }
+    }
+
+    if (!webglSuccess || !renderer) {
+      const ctx = canvas.getContext('2d');
+      if (!ctx) return;
+
+      let frame2D = 0;
+      let anim2DId;
+
+      const render2DFallback = () => {
+        frame2D += 0.03;
+        ctx.clearRect(0, 0, width, height);
+
+        ctx.fillStyle = '#020617';
+        ctx.fillRect(0, 0, width, height);
+
+        const cx = width / 2;
+        const cy = height / 2;
+
+        ctx.fillStyle = 'rgba(245, 158, 11, 0.25)';
+        ctx.strokeStyle = '#f59e0b';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.ellipse(cx, cy + 70, 150, 45, 0, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.stroke();
+
+        ctx.fillStyle = 'rgba(71, 85, 105, 0.25)';
+        ctx.strokeStyle = '#64748b';
+        ctx.beginPath();
+        ctx.ellipse(cx, cy - 10, 130, 38, 0, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.stroke();
+
+        ctx.fillStyle = 'rgba(120, 53, 15, 0.25)';
+        ctx.strokeStyle = '#9a3412';
+        ctx.beginPath();
+        ctx.ellipse(cx, cy - 90, 110, 32, 0, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.stroke();
+
+        ctx.strokeStyle = '#38bdf8';
+        ctx.lineWidth = 2;
+        ctx.strokeRect(cx - 35, cy - 110, 70, 220);
+
+        const cageY = cy + Math.sin(frame2D) * 75;
+        ctx.fillStyle = '#facc15';
+        ctx.fillRect(cx - 15, cageY - 15, 30, 30);
+        ctx.strokeStyle = '#ffffff';
+        ctx.strokeRect(cx - 15, cageY - 15, 30, 30);
+
+        const scanY = cy + Math.sin(frame2D * 1.4) * 85;
+        ctx.strokeStyle = telemetry.methane > 1.25 ? '#ef4444' : '#06b6d4';
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.moveTo(cx - 55, scanY);
+        ctx.lineTo(cx + 55, scanY);
+        ctx.stroke();
+
+        ctx.fillStyle = '#94a3b8';
+        ctx.font = '11px monospace';
+        ctx.fillText('2D Telemetry Shaft View Active', 15, height - 15);
+
+        anim2DId = requestAnimationFrame(render2DFallback);
+      };
+
+      render2DFallback();
+
+      return () => {
+        cancelAnimationFrame(anim2DId);
+      };
+    }
+
     const scene = new THREE.Scene();
     scene.fog = new THREE.FogExp2(0x020617, 0.08);
 
     const camera = new THREE.PerspectiveCamera(55, width / height, 0.1, 1000);
     camera.position.set(0, 3.8, 6.2);
     camera.lookAt(0, 0, 0);
-
-    const renderer = new THREE.WebGLRenderer({ canvas, alpha: true, antialias: true });
-    renderer.setSize(width, height);
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 
     // Lights
     const ambientLight = new THREE.AmbientLight(0xffffff, 0.9);
@@ -438,19 +537,25 @@ export default function Mine3DMapExplorer({ currentLang = 'en' }) {
       scanBeamMesh.position.y = Math.sin(elapsedTime * 1.5) * 2.2;
 
       // Render Scene
-      renderer.render(scene, camera);
+      if (renderer) {
+        try {
+          renderer.render(scene, camera);
+        } catch (e) {}
+      }
       animId = requestAnimationFrame(animate);
     };
     animate();
 
     // Canvas Resize Handler
     const handleResize = () => {
-      if (!canvasRef.current) return;
+      if (!canvasRef.current || !renderer) return;
       const w = canvasRef.current.clientWidth;
       const h = canvasRef.current.clientHeight;
       camera.aspect = w / h;
       camera.updateProjectionMatrix();
-      renderer.setSize(w, h);
+      try {
+        renderer.setSize(w, h);
+      } catch (e) {}
     };
     window.addEventListener('resize', handleResize);
 
@@ -462,8 +567,12 @@ export default function Mine3DMapExplorer({ currentLang = 'en' }) {
       }
       cancelAnimationFrame(animId);
       disposeThreeObject(scene);
-      renderer.dispose();
-      renderer.forceContextLoss();
+      if (renderer) {
+        try {
+          renderer.dispose();
+          renderer.forceContextLoss();
+        } catch (e) {}
+      }
     };
   }, [selectedPit, viewMode, autoRotate, gyroEnabled, activeNode, telemetry.methane]);
 
